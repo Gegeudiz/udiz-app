@@ -9,7 +9,14 @@ export type Loja = {
   updated_at?: string;
   nome: string;
   descricao: string;
+  /** Linha completa para Google Maps (montada a partir dos campos abaixo quando possível). */
   endereco: string;
+  cidade: string;
+  bairro: string;
+  logradouro: string;
+  /** Ex.: número da casa ou "S/N". */
+  numero: string;
+  complemento: string;
   whatsapp: string;
   imagem: string | null;
   /** Dono da loja (usuário logado no mock). */

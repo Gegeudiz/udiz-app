@@ -7,7 +7,32 @@ import { getDataProvider } from "@/lib/repositories/provider";
 import { lojaRepo, produtoRepo } from "@/lib/repositories/localDb";
 import { remoteListMeusProdutos, remoteListMinhasLojas } from "@/lib/supabase/estoqueRemote";
 import { readEvents } from "@/lib/telemetry";
+import { rotuloLocalPublicoLoja } from "@/lib/enderecoLoja";
 import { readUsuario } from "@/lib/usuario";
+
+/** Sugestões fixas para inspirar o lojista — o que costuma ter boa procura no varejo. */
+const IDEIAS_PRODUTOS_EM_ALTA = [
+  {
+    nome: "Kit escolar e papelaria",
+    categoria: "Escola",
+    dica: "Cadernos, estojos e kits voltam forte no começo do ano e em rematrículas.",
+  },
+  {
+    nome: "Skincare e autocuidado",
+    categoria: "Cosméticos",
+    dica: "Hidratantes, protetor solar e itens de rotina têm busca constante.",
+  },
+  {
+    nome: "Decoração e festas",
+    categoria: "Festas",
+    dica: "Itens para aniversário e datas comemorativas costumam puxar vendas sazonais.",
+  },
+  {
+    nome: "Pet shop (ração e acessórios)",
+    categoria: "Pet",
+    dica: "Donos de pet buscam praticidade; combos e reposição frequente ajudam.",
+  },
+] as const;
 
 export default function EstoqueGerenciamentoPage() {
   const router = useRouter();
@@ -137,35 +162,25 @@ export default function EstoqueGerenciamentoPage() {
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
         <article className="lg:col-span-2 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-gray-900">Produtos mais procurados ultimamente</h2>
+          <h2 className="text-lg font-bold text-gray-900">O que as pessoas mais procuram ultimamente</h2>
           <p className="text-sm text-gray-500 mt-1 mb-4">
-            Baseado em interesse recente (salvos e cliques de contato).
+            Ideias de tendência para você se inspirar e cadastrar no seu estoque — quando esses itens
+            aparecem na busca do Udiz, sua loja pode ser encontrada por quem já está procurando.
           </p>
-          {dadosBusca.length === 0 ? (
-            <p className="text-sm text-gray-600">
-              Ainda não há sinal de busca suficiente. Publique mais itens e incentive seus clientes a
-              salvar produtos.
-            </p>
-          ) : (
-            <ul className="space-y-3">
-              {dadosBusca.map((item, idx) => (
-                <li
-                  key={item.produto.id}
-                  className="flex items-center justify-between rounded-lg border border-gray-100 p-3"
-                >
-                  <div>
-                    <p className="text-sm font-semibold text-gray-900">
-                      #{idx + 1} {item.produto.nome}
-                    </p>
-                    <p className="text-xs text-gray-500">{item.produto.categoria}</p>
-                  </div>
-                  <span className="text-xs font-semibold px-2 py-1 rounded-full bg-purple-100 text-purple-700">
-                    Interesse: {item.interesse}
-                  </span>
-                </li>
-              ))}
-            </ul>
-          )}
+          <ul className="space-y-3">
+            {IDEIAS_PRODUTOS_EM_ALTA.map((item, idx) => (
+              <li
+                key={item.nome}
+                className="rounded-lg border border-purple-100 bg-purple-50/40 p-3"
+              >
+                <p className="text-sm font-semibold text-gray-900">
+                  #{idx + 1} {item.nome}
+                </p>
+                <p className="text-xs text-purple-700 font-medium mt-0.5">{item.categoria}</p>
+                <p className="text-xs text-gray-600 mt-2 leading-relaxed">{item.dica}</p>
+              </li>
+            ))}
+          </ul>
         </article>
 
         <article className="rounded-xl border border-gray-200 bg-gradient-to-br from-indigo-50 to-cyan-50 p-5 shadow-sm">
@@ -176,7 +191,7 @@ export default function EstoqueGerenciamentoPage() {
             onClick={() => router.push("/busca")}
             className="mt-4 w-full rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm py-2.5 font-semibold"
           >
-            Ver como cliente vê sua loja
+            Ver como o cliente vê os produtos
           </button>
         </article>
       </section>
@@ -218,7 +233,9 @@ export default function EstoqueGerenciamentoPage() {
               )}
               <div className="p-4">
                 <h2 className="font-bold text-gray-900">{loja.nome}</h2>
-                <p className="text-sm text-gray-600 mt-1">{loja.endereco}</p>
+                <p className="text-sm text-gray-600 mt-1">
+                  {rotuloLocalPublicoLoja(loja) || loja.endereco}
+                </p>
                 <p className="text-sm text-purple-700 mt-2">WhatsApp: {loja.whatsapp}</p>
                 <p className="text-xs text-purple-600 mt-3 font-medium">Abrir loja →</p>
               </div>

@@ -8,6 +8,8 @@ type Props = {
   onConfirmar: () => void;
   carregando?: boolean;
   rotuloConfirmar?: string;
+  /** Mensagem de erro exibida dentro do modal (ex.: falha ao excluir). */
+  erro?: string;
 };
 
 export default function ConfirmarExclusaoModal({
@@ -18,6 +20,7 @@ export default function ConfirmarExclusaoModal({
   onConfirmar,
   carregando = false,
   rotuloConfirmar = "Sim, excluir",
+  erro,
 }: Props) {
   if (!aberto) return null;
 
@@ -32,6 +35,14 @@ export default function ConfirmarExclusaoModal({
         <h3 id="udiz-confirmar-exclusao-titulo" className="text-lg font-bold text-gray-900">
           {titulo}
         </h3>
+        {erro ? (
+          <p
+            role="alert"
+            className="mt-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+          >
+            {erro}
+          </p>
+        ) : null}
         <p className="mt-3 text-sm text-gray-600 leading-relaxed">{descricao}</p>
         <div className="mt-6 flex flex-col-reverse sm:flex-row gap-2 sm:justify-end">
           <button

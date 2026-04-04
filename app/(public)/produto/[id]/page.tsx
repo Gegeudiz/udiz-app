@@ -8,10 +8,14 @@ import Header from "@/components/Header";
 import BottomNav from "@/components/BottomNav";
 import ModalLogin from "@/components/ModalLogin";
 import { useCatalog } from "@/contexts/CatalogContext";
+import { usePublicAppBaseUrl } from "@/hooks/usePublicAppBaseUrl";
+import { buildProdutoPageAbsoluteUrl } from "@/lib/appUrl";
 import { findLojaById, whatsappHref } from "@/lib/catalogo";
+import { queryGoogleMapsLoja, rotuloLocalPublicoLoja } from "@/lib/enderecoLoja";
 import { fetchLojaByIdFromSupabase, fetchProdutoByIdFromSupabase } from "@/lib/supabase/fetchCatalog";
 import type { Loja, Produto, Usuario } from "@/lib/types";
 import { trackEvent } from "@/lib/telemetry";
+import { produtoAtualizadoNosUltimosDias } from "@/lib/produtoAtualizadoRecente";
 import { readUsuario, refreshUsuarioFromSupabaseSession } from "@/lib/usuario";
 
 export default function ProdutoPage() {
@@ -27,6 +31,8 @@ export default function ProdutoPage() {
   const [produto, setProduto] = useState<Produto | null>(null);
   const [loja, setLoja] = useState<Loja | undefined>(undefined);
   const [carregandoExtra, setCarregandoExtra] = useState(false);
+  const [shareFeedback, setShareFeedback] = useState<"" | "copied">("");
+  const linkBase = usePublicAppBaseUrl();
 
   useEffect(() => {
     void refreshUsuarioFromSupabaseSession().then(() => setUsuario(readUsuario()));
@@ -87,11 +93,61 @@ export default function ProdutoPage() {
     };
   }, [produto, lojas, fonte]);
 
+  const produtoPaginaUrl =
+    produto && linkBase ? buildProdutoPageAbsoluteUrl(linkBase, produto.id) : "";
+
   const waLink = useMemo(() => {
     if (!loja?.whatsapp || !produto) return "#";
-    const msg = `Olá! Vi no Udiz o produto "${produto.nome}" na loja ${loja.nome}.`;
-    return whatsappHref(loja.whatsapp, msg);
-  }, [loja, produto]);
+    const lines = [
+      "Olá, vi este produto no Udiz e gostaria de maiores informações.",
+      "",
+      `Produto: ${produto.nome}`,
+      `Loja: ${loja.nome}`,
+    ];
+    if (produtoPaginaUrl) {
+      lines.push("", `Link: ${produtoPaginaUrl}`);
+    }
+    return whatsappHref(loja.whatsapp, lines.join("\n"));
+  }, [loja, produto, produtoPaginaUrl]);
+
+  const compartilharProduto = async () => {
+    if (!produto || !produtoPaginaUrl) return;
+    try {
+      if (typeof navigator !== "undefined" && navigator.share) {
+        await navigator.share({
+          title: `${produto.nome} no Udiz`,
+          text: `Confira este produto no Udiz: ${produto.nome}`,
+          url: produtoPaginaUrl,
+        });
+        trackEvent("produto_compartilhado", {
+          metodo: "native_share",
+          produtoId: produto.id,
+          lojaId: loja?.id ?? "",
+          userId: usuario?.id ?? "",
+        });
+        return;
+      }
+    } catch (e) {
+      if ((e as Error).name === "AbortError") return;
+    }
+    try {
+      await navigator.clipboard.writeText(produtoPaginaUrl);
+      setShareFeedback("copied");
+      window.setTimeout(() => setShareFeedback(""), 2200);
+      trackEvent("produto_compartilhado", {
+        metodo: "clipboard",
+        produtoId: produto.id,
+        lojaId: loja?.id ?? "",
+        userId: usuario?.id ?? "",
+      });
+    } catch {
+      window.prompt("Copie o link do produto:", produtoPaginaUrl);
+    }
+  };
+
+  const localizacaoPublica = loja ? rotuloLocalPublicoLoja(loja) : "";
+  const mapsQuery = loja ? queryGoogleMapsLoja(loja) : "";
+  const mostrarSeloAtualizado = produto ? produtoAtualizadoNosUltimosDias(produto, 15) : false;
 
   const imagemUrl = produto
     ? produto.imagem || loja?.imagem || "https://picsum.photos/600/400"
@@ -151,25 +207,63 @@ export default function ProdutoPage() {
                     <h1 className="text-xl md:text-2xl font-semibold text-gray-900 flex-1 min-w-0">
                       {produto.nome}
                     </h1>
-                    <BotaoSalvarProduto
-                      produtoId={produto.id}
-                      usuario={usuario}
-                      onPrecisaLogin={() => setAbrirLogin(true)}
-                      className="shrink-0"
-                    />
+                    <div className="flex items-center gap-2 shrink-0">
+                      <button
+                        type="button"
+                        onClick={() => void compartilharProduto()}
+                        disabled={!produtoPaginaUrl}
+                        className="inline-flex items-center justify-center w-9 h-9 rounded-full bg-white/95 shadow-md border border-gray-200 text-purple-600 hover:bg-white hover:scale-105 transition-transform disabled:opacity-40 disabled:pointer-events-none disabled:hover:scale-100"
+                        aria-label="Compartilhar link do produto"
+                        title={
+                          shareFeedback === "copied"
+                            ? "Link copiado!"
+                            : produtoPaginaUrl
+                              ? "Compartilhar ou copiar link"
+                              : "Gerando link…"
+                        }
+                      >
+                        <svg
+                          xmlns="http://www.w3.org/2000/svg"
+                          viewBox="0 0 24 24"
+                          fill="none"
+                          stroke="currentColor"
+                          strokeWidth={2}
+                          strokeLinecap="round"
+                          strokeLinejoin="round"
+                          className="w-[1.125rem] h-[1.125rem]"
+                          aria-hidden
+                        >
+                          <path d="M4 12v8a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2v-8" />
+                          <polyline points="16 6 12 2 8 6" />
+                          <line x1="12" x2="12" y1="2" y2="15" />
+                        </svg>
+                      </button>
+                      <BotaoSalvarProduto
+                        produtoId={produto.id}
+                        usuario={usuario}
+                        onPrecisaLogin={() => setAbrirLogin(true)}
+                        className="shrink-0"
+                      />
+                    </div>
                   </div>
 
                   <p className="text-2xl font-bold text-purple-600 mt-2">
                     R$ {Number(produto.preco).toFixed(2)}
                   </p>
 
+                  {mostrarSeloAtualizado ? (
+                    <p className="mt-2 text-xs font-medium text-emerald-800 border-l-4 border-emerald-500 bg-emerald-50 pl-2 py-1 pr-2 rounded-r-md max-w-xl">
+                      Atualizado recentemente
+                    </p>
+                  ) : null}
+
                   <p className="text-gray-500 mt-1">
                     Vendido por: {loja?.nome ?? "Loja"}
                   </p>
 
-                  {loja?.endereco && (
-                    <p className="text-sm text-gray-400 mt-1">📍 {loja.endereco}</p>
-                  )}
+                  {localizacaoPublica ? (
+                    <p className="text-sm text-gray-400 mt-1">📍 {localizacaoPublica}</p>
+                  ) : null}
 
                   {produto.descricao ? (
                     <p className="text-gray-600 mt-4 text-sm">{produto.descricao}</p>
@@ -196,20 +290,25 @@ export default function ProdutoPage() {
                     }}
                     className="bg-green-500 text-white py-3 rounded-lg font-semibold hover:bg-green-600 text-center"
                   >
-                    Falar no WhatsApp
+                    Falar com a Loja
                   </a>
 
-                  {loja?.endereco && (
+                  {mapsQuery ? (
                     <a
-                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(loja.endereco)}`}
+                      href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(mapsQuery)}`}
                       target="_blank"
                       rel="noopener noreferrer"
                       className="bg-blue-500 text-white py-3 rounded-lg font-semibold hover:bg-blue-600 text-center"
                     >
-                      Ver no mapa
+                      Ir até à loja
                     </a>
-                  )}
+                  ) : null}
                 </div>
+
+                <p className="text-sm text-gray-400 mt-4 leading-relaxed" role="note">
+                  O preço neste Produto é o preço de referência atualizado pelo próprio Lojista e pode variar para mais ou para menos. Clique em Falar
+                  com a Loja para confirmar o valor atual e mais informações sobre o produto.
+                </p>
               </div>
             </div>
           </div>

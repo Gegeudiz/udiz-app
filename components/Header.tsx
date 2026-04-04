@@ -36,8 +36,8 @@ export default function Header({ usuario, abrirLogin, onLogout }: HeaderProps) {
 
   return (
     <header className="fixed top-0 left-0 w-full bg-white shadow-md border-b border-gray-200 z-50">
-      <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-start md:items-center gap-3 md:gap-4">
-        <Link href="/" className="shrink-0 min-w-0">
+      <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center gap-3 md:gap-4">
+        <Link href="/" className="shrink-0 min-w-0 self-center">
           <Image
             src="/logo.png"
             alt="Logo Udiz"
@@ -47,22 +47,17 @@ export default function Header({ usuario, abrirLogin, onLogout }: HeaderProps) {
           />
         </Link>
 
-        <div className="flex items-start md:items-center gap-2 md:gap-4 shrink-0 pt-0.5 md:pt-0">
-          <div className="flex flex-col items-center gap-0.5">
-            <button
-              type="button"
-              onClick={irUdizEstoque}
-              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-3 py-2 md:px-4 rounded-lg text-xs md:text-sm shadow-sm transition-colors whitespace-nowrap"
-            >
-              Udiz Estoque
-            </button>
-            <span className="text-[10px] md:text-xs text-gray-600 leading-tight text-center">
-              adicione sua loja
-            </span>
-          </div>
+        <div className="flex items-center gap-2 md:gap-4 shrink-0">
+          <button
+            type="button"
+            onClick={irUdizEstoque}
+            className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-3 py-2 md:px-4 rounded-lg text-xs md:text-sm shadow-sm transition-colors whitespace-nowrap shrink-0"
+          >
+            Udiz Estoque
+          </button>
 
           {usuario ? (
-            <div className="relative flex flex-col items-end">
+            <div className="relative flex flex-col items-end justify-center">
               <button
                 type="button"
                 onClick={() => setMenuPerfilAberto(!menuPerfilAberto)}

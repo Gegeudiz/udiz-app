@@ -3,6 +3,7 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { fileToDataUrl, validateImageFile } from "@/lib/files";
+import { montarEnderecoParaGoogleMaps, rotuloLocalPublicoLoja } from "@/lib/enderecoLoja";
 import type { Loja, Produto } from "@/lib/types";
 import { canEditLoja } from "@/lib/authz";
 import { findLojaById, getLojasFromStorage, getProdutosFromStorage } from "@/lib/catalogo";
@@ -25,6 +26,7 @@ import {
   ProductCardNome,
   ProductCardPreco,
 } from "@/components/ProductCardLayout";
+import { mensagemErroApiParaUsuario } from "@/lib/mensagemErroApi";
 import { trackEvent } from "@/lib/telemetry";
 import { readUsuario } from "@/lib/usuario";
 
@@ -61,7 +63,11 @@ function MinhaLojaContent() {
 
   const [modalLojaAberto, setModalLojaAberto] = useState(false);
   const [lojaNome, setLojaNome] = useState("");
-  const [lojaEndereco, setLojaEndereco] = useState("");
+  const [lojaCidade, setLojaCidade] = useState("");
+  const [lojaBairro, setLojaBairro] = useState("");
+  const [lojaLogradouro, setLojaLogradouro] = useState("");
+  const [lojaNumero, setLojaNumero] = useState("");
+  const [lojaComplemento, setLojaComplemento] = useState("");
   const [lojaWhatsapp, setLojaWhatsapp] = useState("");
   const [lojaDescricao, setLojaDescricao] = useState("");
   const [lojaImagemPreview, setLojaImagemPreview] = useState<string | null>(null);
@@ -113,8 +119,13 @@ function MinhaLojaContent() {
 
   const abrirModalNovaLoja = () => {
     if (!loja) return;
+    setErro("");
     setLojaNome(loja.nome);
-    setLojaEndereco(loja.endereco);
+    setLojaCidade(loja.cidade ?? "");
+    setLojaBairro(loja.bairro ?? "");
+    setLojaLogradouro(loja.logradouro ?? "");
+    setLojaNumero(loja.numero ?? "");
+    setLojaComplemento(loja.complemento ?? "");
     setLojaWhatsapp(loja.whatsapp);
     setLojaDescricao(loja.descricao);
     setLojaImagemFile(null);
@@ -125,28 +136,59 @@ function MinhaLojaContent() {
   const salvarLoja = async () => {
     const usuario = readUsuario();
     if (!usuario || !loja || !canEditLoja(usuario, loja)) return;
+    const cidade = lojaCidade.trim();
+    const bairro = lojaBairro.trim();
+    const logradouro = lojaLogradouro.trim();
+    const numero = lojaNumero.trim();
+    const complemento = lojaComplemento.trim();
+    if (!cidade || !bairro || !logradouro || !numero) {
+      setErro("Preencha cidade, bairro, rua/avenida e número (ou S/N).");
+      return;
+    }
+    if (!lojaWhatsapp.trim()) {
+      setErro("Informe o WhatsApp da loja.");
+      return;
+    }
+    setErro("");
+    const endereco = montarEnderecoParaGoogleMaps({
+      cidade,
+      bairro,
+      logradouro,
+      numero,
+      complemento,
+    });
     const result =
       getDataProvider() === "supabase"
         ? await remoteUpdateLoja(
             lojaId,
             {
               nome: lojaNome.trim(),
-              endereco: lojaEndereco.trim(),
-              whatsapp: lojaWhatsapp.trim(),
               descricao: lojaDescricao.trim(),
+              cidade,
+              bairro,
+              logradouro,
+              numero,
+              complemento,
+              endereco,
+              whatsapp: lojaWhatsapp.trim(),
               imagem: lojaImagemPreview,
             },
             { imagemFile: lojaImagemFile }
           )
         : lojaRepo.update(lojaId, usuario.id, {
             nome: lojaNome.trim(),
-            endereco: lojaEndereco.trim(),
-            whatsapp: lojaWhatsapp.trim(),
             descricao: lojaDescricao.trim(),
+            cidade,
+            bairro,
+            logradouro,
+            numero,
+            complemento,
+            endereco,
+            whatsapp: lojaWhatsapp.trim(),
             imagem: lojaImagemPreview,
           });
     if (!result.ok) {
-      setErro(result.message);
+      setErro(mensagemErroApiParaUsuario(result.message));
       return;
     }
     trackEvent("estoque_loja_editada", { userId: usuario.id, lojaId });
@@ -177,6 +219,7 @@ function MinhaLojaContent() {
   };
 
   const abrirModalNovoProduto = () => {
+    setErro("");
     setProdutoEditandoId(null);
     setNome("");
     setPreco("");
@@ -188,6 +231,7 @@ function MinhaLojaContent() {
   };
 
   const fecharModalProduto = () => {
+    setErro("");
     setModalProdutoAberto(false);
     setProdutoEditandoId(null);
     setNome("");
@@ -199,9 +243,14 @@ function MinhaLojaContent() {
   };
 
   const fecharModalLoja = () => {
+    setErro("");
     setModalLojaAberto(false);
     setLojaNome("");
-    setLojaEndereco("");
+    setLojaCidade("");
+    setLojaBairro("");
+    setLojaLogradouro("");
+    setLojaNumero("");
+    setLojaComplemento("");
     setLojaWhatsapp("");
     setLojaDescricao("");
     setLojaImagemFile(null);
@@ -209,6 +258,7 @@ function MinhaLojaContent() {
   };
 
   const abrirModalEditarProduto = (p: Produto) => {
+    setErro("");
     setProdutoEditandoId(p.id);
     setNome(p.nome);
     setPreco(String(p.preco));
@@ -249,7 +299,7 @@ function MinhaLojaContent() {
               imagem: imagemPreview,
             });
       if (!result.ok) {
-        setErro(result.message);
+        setErro(mensagemErroApiParaUsuario(result.message));
         return;
       }
       trackEvent("estoque_produto_editado", { userId: usuario.id, lojaId, produtoId: produtoEditandoId });
@@ -275,7 +325,7 @@ function MinhaLojaContent() {
               imagem: imagemPreview,
             });
       if (!result.ok) {
-        setErro(result.message);
+        setErro(mensagemErroApiParaUsuario(result.message));
         return;
       }
       trackEvent("estoque_produto_criado", { userId: usuario.id, lojaId, produtoId: result.data.id });
@@ -299,7 +349,7 @@ function MinhaLojaContent() {
             ? await remoteDeleteLoja(lojaId)
             : lojaRepo.delete(lojaId, usuario.id);
         if (!r.ok) {
-          setErro(r.message);
+          setErro(mensagemErroApiParaUsuario(r.message));
           return;
         }
         trackEvent("estoque_loja_excluida", { userId: usuario.id, lojaId });
@@ -315,7 +365,7 @@ function MinhaLojaContent() {
           ? await remoteDeleteProduto(excluirDialog.id, lojaId)
           : produtoRepo.delete(excluirDialog.id, lojaId);
       if (!r.ok) {
-        setErro(r.message);
+        setErro(mensagemErroApiParaUsuario(r.message));
         return;
       }
       trackEvent("estoque_produto_excluido", {
@@ -379,7 +429,11 @@ function MinhaLojaContent() {
       >
         ← Voltar às lojas
       </button>
-      {erro && <p className="mb-3 rounded-lg bg-red-50 p-3 text-sm text-red-700">{erro}</p>}
+      {erro && !modalLojaAberto && !modalProdutoAberto && !excluirDialog ? (
+        <p role="alert" className="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
+          {erro}
+        </p>
+      ) : null}
       {sucesso && <p className="mb-3 rounded-lg bg-green-50 p-3 text-sm text-green-700">{sucesso}</p>}
 
       <div className="flex flex-col md:flex-row md:items-start gap-6 mb-6">
@@ -396,7 +450,9 @@ function MinhaLojaContent() {
         )}
         <div className="flex-1 min-w-0">
           <h1 className="text-2xl font-bold text-gray-900">{loja.nome}</h1>
-          <p className="text-gray-600 mt-1">{loja.endereco}</p>
+          <p className="text-gray-600 mt-1">
+            {rotuloLocalPublicoLoja(loja) || loja.endereco}
+          </p>
           <p className="text-purple-700 mt-2 text-sm">WhatsApp: {loja.whatsapp}</p>
           {loja.descricao ? (
             <p className="text-sm text-gray-500 mt-2">{loja.descricao}</p>
@@ -470,6 +526,14 @@ function MinhaLojaContent() {
             <p className="text-xs text-gray-500 mb-4">
               Somente você (dono da loja) vê e altera estes dados. Visitantes do Udiz não editam sua loja.
             </p>
+            {erro ? (
+              <p
+                role="alert"
+                className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+              >
+                {erro}
+              </p>
+            ) : null}
 
             <input
               placeholder="Nome da loja"
@@ -477,10 +541,35 @@ function MinhaLojaContent() {
               onChange={(e) => setLojaNome(e.target.value)}
               className="w-full border border-gray-300 rounded-lg p-2 mb-2 text-gray-900"
             />
+            <p className="text-xs font-semibold text-gray-700 mt-2 mb-1">Endereço</p>
             <input
-              placeholder="Endereço"
-              value={lojaEndereco}
-              onChange={(e) => setLojaEndereco(e.target.value)}
+              placeholder="Cidade"
+              value={lojaCidade}
+              onChange={(e) => setLojaCidade(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2 mb-2 text-gray-900"
+            />
+            <input
+              placeholder="Bairro"
+              value={lojaBairro}
+              onChange={(e) => setLojaBairro(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2 mb-2 text-gray-900"
+            />
+            <input
+              placeholder="Rua / avenida"
+              value={lojaLogradouro}
+              onChange={(e) => setLojaLogradouro(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2 mb-2 text-gray-900"
+            />
+            <input
+              placeholder="Número ou S/N"
+              value={lojaNumero}
+              onChange={(e) => setLojaNumero(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2 mb-2 text-gray-900"
+            />
+            <input
+              placeholder="Complemento (opcional)"
+              value={lojaComplemento}
+              onChange={(e) => setLojaComplemento(e.target.value)}
               className="w-full border border-gray-300 rounded-lg p-2 mb-2 text-gray-900"
             />
             <input
@@ -536,7 +625,14 @@ function MinhaLojaContent() {
               <button
                 type="button"
                 onClick={() => void salvarLoja()}
-                disabled={!lojaNome.trim() || !lojaEndereco.trim()}
+                disabled={
+                  !lojaNome.trim() ||
+                  !lojaCidade.trim() ||
+                  !lojaBairro.trim() ||
+                  !lojaLogradouro.trim() ||
+                  !lojaNumero.trim() ||
+                  !lojaWhatsapp.trim()
+                }
                 className="flex-1 bg-purple-600 text-white py-2 rounded-lg font-semibold disabled:opacity-50"
               >
                 Salvar alterações
@@ -555,6 +651,7 @@ function MinhaLojaContent() {
 
       <ConfirmarExclusaoModal
         aberto={excluirDialog != null}
+        erro={excluirDialog && erro ? erro : undefined}
         titulo={
           excluirDialog?.tipo === "loja"
             ? "Excluir loja?"
@@ -569,7 +666,12 @@ function MinhaLojaContent() {
               ? `Tem certeza que deseja excluir o produto "${excluirDialog.nome}"? Esta ação não pode ser desfeita.`
               : ""
         }
-        onCancelar={() => !excluindo && setExcluirDialog(null)}
+        onCancelar={() => {
+          if (!excluindo) {
+            setErro("");
+            setExcluirDialog(null);
+          }
+        }}
         onConfirmar={() => void confirmarExclusao()}
         carregando={excluindo}
       />
@@ -580,6 +682,14 @@ function MinhaLojaContent() {
             <h3 className="text-lg font-bold text-gray-900 mb-4">
               {produtoEditandoId != null ? "Editar produto" : "Novo produto"}
             </h3>
+            {erro ? (
+              <p
+                role="alert"
+                className="mb-4 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+              >
+                {erro}
+              </p>
+            ) : null}
 
             <input
               placeholder="Nome do produto"

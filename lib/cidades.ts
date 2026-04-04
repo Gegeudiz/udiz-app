@@ -1,3 +1,5 @@
+import type { Loja } from "@/lib/types";
+
 export const CIDADES_DISPONIVEIS = [
   "Uberlândia/MG",
   "Brasília/DF",
@@ -26,6 +28,20 @@ export function enderecoEhDaCidade(endereco: string | null | undefined, cidade: 
 
   // Fallback: tenta o texto completo selecionado.
   return e.includes(c);
+}
+
+/** Usa o campo `cidade` da loja quando existir; senão analisa o texto de `endereco` (lojas antigas). */
+export function lojaCorrespondeCidadeFiltrada(loja: Loja | undefined, cidadeFiltro: string): boolean {
+  if (!cidadeFiltro) return true;
+  const cLoja = loja?.cidade?.trim();
+  if (cLoja) {
+    const n = norm(cLoja);
+    const f = norm(cidadeFiltro);
+    const fBase = f.split("/")[0]?.trim() ?? f;
+    if (fBase && (n.includes(fBase) || fBase.includes(n))) return true;
+    return n.includes(f) || f.includes(n);
+  }
+  return enderecoEhDaCidade(loja?.endereco, cidadeFiltro);
 }
 
 export function readCidadeSelecionada(): string {

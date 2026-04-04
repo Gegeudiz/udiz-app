@@ -17,9 +17,10 @@ import BottomNav from "@/components/BottomNav";
 import ModalLogin from "@/components/ModalLogin";
 import { useCatalog } from "@/contexts/CatalogContext";
 import { findLojaById } from "@/lib/catalogo";
+import { rotuloLocalPublicoLoja } from "@/lib/enderecoLoja";
 import {
   CIDADES_DISPONIVEIS,
-  enderecoEhDaCidade,
+  lojaCorrespondeCidadeFiltrada,
   readCidadeSelecionada,
   writeCidadeSelecionada,
 } from "@/lib/cidades";
@@ -81,7 +82,7 @@ function BuscaContent() {
     const t = termo.trim().toLowerCase();
     return produtos.filter((p) => {
       const loja = findLojaById(lojas, p.loja_id);
-      const matchCidade = !cidade || enderecoEhDaCidade(loja?.endereco, cidade);
+      const matchCidade = !cidade || lojaCorrespondeCidadeFiltrada(loja, cidade);
       const matchCat = !categoria || p.categoria === categoria;
       const matchNome =
         !t ||
@@ -172,6 +173,7 @@ function BuscaContent() {
             <ul className={`${PRODUCT_CARD_GRID_CLASS} w-full list-none p-0 m-0`}>
               {filtrados.map((p) => {
                 const loja = findLojaById(lojas, p.loja_id);
+                const locLabel = loja ? rotuloLocalPublicoLoja(loja) || loja.endereco : "";
                 return (
                   <li key={p.id} className="min-w-0">
                     <Link
@@ -189,10 +191,8 @@ function BuscaContent() {
                       <ProductCardNome>{p.nome}</ProductCardNome>
                       <ProductCardPreco valor={Number(p.preco)} />
                       <ProductCardNomeLoja>{loja?.nome ?? "Loja"}</ProductCardNomeLoja>
-                      {loja?.endereco ? (
-                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">
-                          {loja.endereco}
-                        </p>
+                      {locLabel ? (
+                        <p className="text-xs text-gray-500 mt-1 line-clamp-2">{locLabel}</p>
                       ) : null}
                     </Link>
                   </li>

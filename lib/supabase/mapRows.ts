@@ -6,6 +6,11 @@ export type LojaRow = {
   nome: string;
   descricao: string;
   endereco: string;
+  cidade?: string;
+  bairro?: string;
+  logradouro?: string;
+  numero?: string;
+  complemento?: string;
   whatsapp: string;
   imagem: string | null;
   created_at: string;
@@ -31,6 +36,11 @@ export function mapLoja(row: LojaRow): Loja {
     nome: row.nome,
     descricao: row.descricao ?? "",
     endereco: row.endereco,
+    cidade: row.cidade ?? "",
+    bairro: row.bairro ?? "",
+    logradouro: row.logradouro ?? "",
+    numero: row.numero ?? "",
+    complemento: row.complemento ?? "",
     whatsapp: row.whatsapp,
     imagem: row.imagem,
     ownerId: row.owner_id,

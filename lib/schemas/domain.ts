@@ -22,11 +22,16 @@ export const lojaSchema = z.object({
     .min(2, "O nome da loja deve ter ao menos 2 caracteres.")
     .max(80, "O nome da loja pode ter no máximo 80 caracteres."),
   descricao: z.string().trim().max(300, "A descrição pode ter no máximo 300 caracteres."),
+  cidade: z.string().trim().max(80, "Cidade pode ter no máximo 80 caracteres."),
+  bairro: z.string().trim().max(80, "Bairro pode ter no máximo 80 caracteres."),
+  logradouro: z.string().trim().max(120, "Rua/avenida pode ter no máximo 120 caracteres."),
+  numero: z.string().trim().max(20, "Número pode ter no máximo 20 caracteres."),
+  complemento: z.string().trim().max(80, "Complemento pode ter no máximo 80 caracteres."),
   endereco: z
     .string()
     .trim()
-    .min(4, "O endereço deve ter ao menos 4 caracteres.")
-    .max(140, "O endereço pode ter no máximo 140 caracteres."),
+    .min(4, "O endereço completo deve ter ao menos 4 caracteres.")
+    .max(320, "O endereço completo pode ter no máximo 320 caracteres."),
   whatsapp: z
     .string()
     .trim()

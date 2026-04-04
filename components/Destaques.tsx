@@ -13,7 +13,7 @@ import {
 } from "@/components/ProductCardLayout";
 import { useCatalog } from "@/contexts/CatalogContext";
 import { findLojaById } from "@/lib/catalogo";
-import { enderecoEhDaCidade, readCidadeSelecionada } from "@/lib/cidades";
+import { lojaCorrespondeCidadeFiltrada, readCidadeSelecionada } from "@/lib/cidades";
 import type { Usuario } from "@/lib/types";
 
 type Props = {
@@ -43,7 +43,7 @@ export default function Destaques({ usuario, onPrecisaLogin }: Props) {
     if (!montado || loading) return [];
     const filtradosPorCidade = produtos.filter((p) => {
       const loja = findLojaById(lojas, p.loja_id);
-      return enderecoEhDaCidade(loja?.endereco, cidadeSelecionada);
+      return lojaCorrespondeCidadeFiltrada(loja, cidadeSelecionada);
     });
     const slice = filtradosPorCidade.slice(0, 10);
     return slice.map((p) => {

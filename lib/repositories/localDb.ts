@@ -55,6 +55,11 @@ function hydrateLoja(item: Partial<Loja>): Loja | null {
     nome: String(item.nome ?? "").trim(),
     descricao: String(item.descricao ?? "").trim(),
     endereco: String(item.endereco ?? "").trim(),
+    cidade: String(item.cidade ?? "").trim(),
+    bairro: String(item.bairro ?? "").trim(),
+    logradouro: String(item.logradouro ?? "").trim(),
+    numero: String(item.numero ?? "").trim(),
+    complemento: String(item.complemento ?? "").trim(),
     whatsapp: String(item.whatsapp ?? "").trim(),
     imagem: item.imagem ?? null,
     ownerId: String(item.ownerId ?? ""),
@@ -78,7 +83,7 @@ function hydrateProduto(item: Partial<Produto>): Produto | null {
     descricao: String(item.descricao ?? "").trim(),
     imagem: item.imagem ?? null,
     created_at: item.created_at ?? now,
-    updated_at: item.updated_at ?? now,
+    updated_at: item.updated_at ?? item.created_at ?? now,
   };
   if (!candidate.loja_id) return null;
   return produtoSchema.safeParse(candidate).success ? candidate : null;

@@ -1,3 +1,4 @@
+import { lojaComEnderecoMapsAtualizado, montarEnderecoParaGoogleMaps } from "@/lib/enderecoLoja";
 import { mapLoja, mapProduto, type LojaRow, type ProdutoRow } from "@/lib/supabase/mapRows";
 import { requireSupabaseSession } from "@/lib/supabase/requireSession";
 import { resolveImageInput } from "@/lib/supabase/storageUpload";
@@ -40,8 +41,12 @@ export async function remoteListProdutosDaLoja(lojaId: string): Promise<Produto[
 export async function remoteCreateLoja(payload: {
   nome: string;
   descricao: string;
-  endereco: string;
   whatsapp: string;
+  cidade: string;
+  bairro: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
   imagem: string | null;
   imagemFile?: File | null;
 }): Promise<ValidationResult<Loja>> {
@@ -63,11 +68,29 @@ export async function remoteCreateLoja(payload: {
     };
   }
 
+  const cidade = payload.cidade.trim();
+  const bairro = payload.bairro.trim();
+  const logradouro = payload.logradouro.trim();
+  const numero = payload.numero.trim();
+  const complemento = payload.complemento.trim();
+  const endereco = montarEnderecoParaGoogleMaps({
+    cidade,
+    bairro,
+    logradouro,
+    numero,
+    complemento,
+  });
+
   const insert = {
     owner_id: ctx.userId,
     nome: payload.nome.trim(),
     descricao: payload.descricao.trim(),
-    endereco: payload.endereco.trim(),
+    cidade,
+    bairro,
+    logradouro,
+    numero,
+    complemento,
+    endereco,
     whatsapp: payload.whatsapp.trim(),
     imagem,
   };
@@ -81,7 +104,21 @@ export async function remoteCreateLoja(payload: {
 
 export async function remoteUpdateLoja(
   lojaId: string,
-  changes: Partial<Pick<Loja, "nome" | "descricao" | "endereco" | "whatsapp" | "imagem">>,
+  changes: Partial<
+    Pick<
+      Loja,
+      | "nome"
+      | "descricao"
+      | "endereco"
+      | "cidade"
+      | "bairro"
+      | "logradouro"
+      | "numero"
+      | "complemento"
+      | "whatsapp"
+      | "imagem"
+    >
+  >,
   options?: { imagemFile?: File | null }
 ): Promise<ValidationResult<Loja>> {
   const ctx = await requireSupabaseSession();
@@ -97,12 +134,12 @@ export async function remoteUpdateLoja(
   if (!existing) return { ok: false, message: "Loja não encontrada" };
 
   const row = existing as LojaRow;
-  const merged: Loja = {
+  const merged: Loja = lojaComEnderecoMapsAtualizado({
     ...mapLoja(row),
     ...changes,
     id: row.id,
     ownerId: ctx.userId,
-  };
+  });
 
   let imagemOut = merged.imagem;
   try {
@@ -119,11 +156,17 @@ export async function remoteUpdateLoja(
     };
   }
 
+  const fixed = lojaComEnderecoMapsAtualizado({ ...merged, imagem: imagemOut });
   const patch = {
-    nome: merged.nome.trim(),
-    descricao: merged.descricao.trim(),
-    endereco: merged.endereco.trim(),
-    whatsapp: merged.whatsapp.trim(),
+    nome: fixed.nome.trim(),
+    descricao: fixed.descricao.trim(),
+    cidade: fixed.cidade.trim(),
+    bairro: fixed.bairro.trim(),
+    logradouro: fixed.logradouro.trim(),
+    numero: fixed.numero.trim(),
+    complemento: fixed.complemento.trim(),
+    endereco: fixed.endereco.trim(),
+    whatsapp: fixed.whatsapp.trim(),
     imagem: imagemOut,
   };
 

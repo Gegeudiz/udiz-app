@@ -15,6 +15,10 @@ import {
   writeUsuario,
 } from "@/lib/usuario";
 
+function mesmoUsuario(a: Usuario, b: Usuario): boolean {
+  return a.id === b.id && a.nome === b.nome && a.foto === b.foto && a.bio === b.bio;
+}
+
 export default function EstoqueLayout({
   children,
 }: {
@@ -45,20 +49,34 @@ export default function EstoqueLayout({
   useEffect(() => {
     if (!authReady) return;
     const onPerfilSalvo = () => {
-      void refreshUsuarioFromSupabaseSession().then(() => setUsuario(readUsuario()));
+      void refreshUsuarioFromSupabaseSession().then(() => {
+        const next = readUsuario();
+        setUsuario((prev) => {
+          if (!next) return next;
+          if (prev && mesmoUsuario(prev, next)) return prev;
+          return next;
+        });
+      });
     };
     window.addEventListener("udiz:usuario-atualizado", onPerfilSalvo);
     return () => window.removeEventListener("udiz:usuario-atualizado", onPerfilSalvo);
   }, [authReady]);
 
   useEffect(() => {
-    if (!authReady || !usuario) return;
+    if (!authReady || !usuario?.id) return;
     const onFocus = () => {
-      void refreshUsuarioFromSupabaseSession().then(() => setUsuario(readUsuario()));
+      void refreshUsuarioFromSupabaseSession().then(() => {
+        const next = readUsuario();
+        setUsuario((prev) => {
+          if (!next) return next;
+          if (prev && mesmoUsuario(prev, next)) return prev;
+          return next;
+        });
+      });
     };
     window.addEventListener("focus", onFocus);
     return () => window.removeEventListener("focus", onFocus);
-  }, [authReady, usuario]);
+  }, [authReady, usuario?.id]);
 
   useEffect(() => {
     if (!authReady) return;
@@ -74,6 +92,7 @@ export default function EstoqueLayout({
     router.replace("/?estoque=1");
   }, [authReady, usuario, router, pathname]);
 
+  // Revalida acesso ao mudar de usuário (`id`), não a cada nova referência de `usuario` (ex.: após focus ao fechar seletor de arquivo).
   useEffect(() => {
     if (!authReady || !usuario) return;
     if (getDataProvider() !== "supabase") {
@@ -92,7 +111,7 @@ export default function EstoqueLayout({
       setGateEstoqueCarregando(false);
       if (!ok) router.replace("/estoque/solicitar");
     });
-  }, [authReady, usuario, isPaginaSolicitar, router]);
+  }, [authReady, usuario?.id, isPaginaSolicitar, router]);
 
   if (!authReady) {
     return (

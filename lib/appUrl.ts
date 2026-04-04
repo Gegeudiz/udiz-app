@@ -23,3 +23,9 @@ export function resolveAppBaseUrl(request?: NextRequest): string {
 
   return "http://localhost:3000";
 }
+
+/** URL absoluta da página pública de um produto (compartilhar, WhatsApp). */
+export function buildProdutoPageAbsoluteUrl(baseUrl: string, produtoId: string): string {
+  const b = baseUrl.replace(/\/+$/, "");
+  return `${b}/produto/${encodeURIComponent(produtoId)}`;
+}
