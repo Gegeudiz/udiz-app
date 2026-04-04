@@ -57,7 +57,11 @@ export async function signUpWithEmailPassword(
   email: string,
   password: string,
   nome: string
-): Promise<{ ok: true; user: Usuario } | { ok: false; message: string } | { ok: "confirm_email"; message: string }> {
+): Promise<
+  | { ok: true; user: Usuario; accessToken: string }
+  | { ok: false; message: string }
+  | { ok: "confirm_email"; message: string }
+> {
   const supabase = createSupabaseBrowserClient();
   const { data, error } = await supabase.auth.signUp({
     email: email.trim(),
@@ -66,15 +70,15 @@ export async function signUpWithEmailPassword(
   });
   if (error) return { ok: false, message: authErrorMessage(error.message) };
 
-  if (data.session && data.user) {
+  if (data.session && data.user && data.session.access_token) {
     const u = await syncUserFromSupabaseSession();
-    if (u) return { ok: true, user: u };
+    if (u) return { ok: true, user: u, accessToken: data.session.access_token };
   }
 
   return {
     ok: "confirm_email",
     message:
-      "Conta criada. Se o Supabase exige confirmação de email, abra o link recebido e depois use Entrar.",
+      "No painel do Supabase, desative a confirmação obrigatória de email (Authentication → Email) para entrar na hora. Enquanto estiver ativa, use o link enviado pelo Supabase e depois Entrar.",
   };
 }
 

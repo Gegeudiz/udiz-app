@@ -3,6 +3,7 @@
 import { useState } from "react";
 import type { Usuario } from "@/lib/types";
 import { getDataProvider } from "@/lib/repositories/provider";
+import { requestBoasVindasEmail } from "@/lib/emails/requestBoasVindas";
 import { signInWithEmailPassword, signUpWithEmailPassword } from "@/lib/supabase/authSession";
 import { trackEvent } from "@/lib/telemetry";
 import { writeUsuario } from "@/lib/usuario";
@@ -23,6 +24,8 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
   const [cadastroTel, setCadastroTel] = useState("");
   const [carregando, setCarregando] = useState(false);
   const [erroForm, setErroForm] = useState("");
+  /** Cadastro ok, mas sessão só após confirmar email no Supabase. */
+  const [emailAguardandoConfirmacao, setEmailAguardandoConfirmacao] = useState<string | null>(null);
 
   const usarSupabase = getDataProvider() === "supabase";
 
@@ -35,6 +38,7 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
     setCadastroTel("");
     setErroForm("");
     setCarregando(false);
+    setEmailAguardandoConfirmacao(null);
   };
 
   const handleLogin = (user: Usuario) => {
@@ -75,9 +79,11 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
       return;
     }
     if (r.ok === "confirm_email") {
-      setErroForm(r.message);
+      setErroForm("");
+      setEmailAguardandoConfirmacao(cadastroEmail.trim());
       return;
     }
+    requestBoasVindasEmail(r.accessToken);
     handleLogin(r.user);
     resetCampos();
     fechar();
@@ -96,7 +102,7 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
           {usarSupabase
             ? modo === "login"
               ? "Use o mesmo email e senha cadastrados no Supabase (Auth)."
-              : "Criamos sua conta no Supabase Auth. Se o projeto exigir, confirme o email."
+              : "Preencha os dados. Se o projeto exigir confirmação por email, você receberá um link para ativar a conta."
             : modo === "login"
               ? "Acesse para continuar no Udiz."
               : "Preencha os dados para criar seu acesso."}
@@ -107,6 +113,39 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
             {erroForm}
           </p>
         )}
+
+        {usarSupabase && modo === "cadastro" && emailAguardandoConfirmacao ? (
+          <div className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-4 text-sm text-emerald-950">
+            <p className="font-semibold text-base text-emerald-900">
+              Confirme sua conta para autenticar o seu cadastro.
+            </p>
+            <p className="mt-2 text-emerald-900/90">
+              O Supabase ainda exige confirmação por email. Abra a mensagem enviada para{" "}
+              <span className="font-medium break-all">{emailAguardandoConfirmacao}</span> e use o
+              link; depois <strong>Entrar</strong> com a mesma senha.
+            </p>
+            <p className="mt-2 text-xs text-emerald-800/80">
+              Para cadastro imediato (sem esperar email), no painel do Supabase desligue{" "}
+              <strong>Confirm email</strong> em Authentication → Providers → Email. O Udiz envia
+              boas-vindas pelo Resend; isso é independente da confirmação do Supabase.
+            </p>
+            <button
+              type="button"
+              onClick={() => {
+                setLoginEmail(emailAguardandoConfirmacao);
+                setEmailAguardandoConfirmacao(null);
+                setCadastroEmail("");
+                setCadastroSenha("");
+                setNome("");
+                setCadastroTel("");
+                setModo("login");
+              }}
+              className="mt-4 w-full rounded-md bg-purple-600 py-2.5 font-semibold text-white hover:bg-purple-700"
+            >
+              Ir para Entrar
+            </button>
+          </div>
+        ) : null}
 
         {modo === "login" ? (
           <>
@@ -154,67 +193,71 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
           </>
         ) : (
           <>
-            <input
-              type="text"
-              placeholder="Nome"
-              value={nome}
-              onChange={(e) => setNome(e.target.value)}
-              autoComplete="name"
-              className="w-full border border-gray-300 text-gray-900 placeholder:text-gray-500 p-3 rounded-md mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-            />
+            {!(usarSupabase && emailAguardandoConfirmacao) ? (
+              <>
+                <input
+                  type="text"
+                  placeholder="Nome"
+                  value={nome}
+                  onChange={(e) => setNome(e.target.value)}
+                  autoComplete="name"
+                  className="w-full border border-gray-300 text-gray-900 placeholder:text-gray-500 p-3 rounded-md mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                />
 
-            <input
-              type="email"
-              placeholder="Email"
-              value={cadastroEmail}
-              onChange={(e) => setCadastroEmail(e.target.value)}
-              autoComplete="email"
-              className="w-full border border-gray-300 text-gray-900 placeholder:text-gray-500 p-3 rounded-md mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-            />
+                <input
+                  type="email"
+                  placeholder="Email"
+                  value={cadastroEmail}
+                  onChange={(e) => setCadastroEmail(e.target.value)}
+                  autoComplete="email"
+                  className="w-full border border-gray-300 text-gray-900 placeholder:text-gray-500 p-3 rounded-md mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                />
 
-            <input
-              type="tel"
-              placeholder="Telefone"
-              value={cadastroTel}
-              onChange={(e) => setCadastroTel(e.target.value)}
-              autoComplete="tel"
-              className="w-full border border-gray-300 text-gray-900 placeholder:text-gray-500 p-3 rounded-md mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-            />
+                <input
+                  type="tel"
+                  placeholder="Telefone"
+                  value={cadastroTel}
+                  onChange={(e) => setCadastroTel(e.target.value)}
+                  autoComplete="tel"
+                  className="w-full border border-gray-300 text-gray-900 placeholder:text-gray-500 p-3 rounded-md mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                />
 
-            <input
-              type="password"
-              placeholder="Senha"
-              value={cadastroSenha}
-              onChange={(e) => setCadastroSenha(e.target.value)}
-              autoComplete="new-password"
-              className="w-full border border-gray-300 text-gray-900 placeholder:text-gray-500 p-3 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-            />
+                <input
+                  type="password"
+                  placeholder="Senha"
+                  value={cadastroSenha}
+                  onChange={(e) => setCadastroSenha(e.target.value)}
+                  autoComplete="new-password"
+                  className="w-full border border-gray-300 text-gray-900 placeholder:text-gray-500 p-3 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+                />
 
-            {usarSupabase ? (
-              <button
-                type="button"
-                disabled={carregando}
-                onClick={() => void submitCadastroSupabase()}
-                className="w-full bg-purple-600 text-white font-semibold py-2.5 rounded-md mb-2 hover:bg-purple-700 transition-colors disabled:opacity-60"
-              >
-                {carregando ? "Criando..." : "Criar conta"}
-              </button>
-            ) : (
-              <button
-                type="button"
-                onClick={() => {
-                  handleLogin({
-                    id: `udiz-u-${Date.now()}`,
-                    nome: nome.trim() || "Usuário Teste",
-                  });
-                  resetCampos();
-                  fechar();
-                }}
-                className="w-full bg-purple-600 text-white font-semibold py-2.5 rounded-md mb-2 hover:bg-purple-700 transition-colors"
-              >
-                Criar conta (local)
-              </button>
-            )}
+                {usarSupabase ? (
+                  <button
+                    type="button"
+                    disabled={carregando}
+                    onClick={() => void submitCadastroSupabase()}
+                    className="w-full bg-purple-600 text-white font-semibold py-2.5 rounded-md mb-2 hover:bg-purple-700 transition-colors disabled:opacity-60"
+                  >
+                    {carregando ? "Criando..." : "Criar conta"}
+                  </button>
+                ) : (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      handleLogin({
+                        id: `udiz-u-${Date.now()}`,
+                        nome: nome.trim() || "Usuário Teste",
+                      });
+                      resetCampos();
+                      fechar();
+                    }}
+                    className="w-full bg-purple-600 text-white font-semibold py-2.5 rounded-md mb-2 hover:bg-purple-700 transition-colors"
+                  >
+                    Criar conta (local)
+                  </button>
+                )}
+              </>
+            ) : null}
           </>
         )}
 
@@ -238,6 +281,10 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
             <button
               type="button"
               onClick={() => {
+                if (emailAguardandoConfirmacao) {
+                  setLoginEmail(emailAguardandoConfirmacao);
+                }
+                setEmailAguardandoConfirmacao(null);
                 setModo("login");
                 setErroForm("");
               }}

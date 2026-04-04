@@ -10,7 +10,12 @@ import BannerLoja from "../../components/BannerLoja";
 import Footer from "../../components/Footer";
 import ModalLogin from "../../components/ModalLogin";
 import type { Usuario } from "@/lib/types";
-import { PENDING_ESTOQUE_KEY, readUsuario, refreshUsuarioFromSupabaseSession } from "@/lib/usuario";
+import {
+  ESTOQUE_DESTINO_POS_LOGIN_KEY,
+  PENDING_ESTOQUE_KEY,
+  readUsuario,
+  refreshUsuarioFromSupabaseSession,
+} from "@/lib/usuario";
 
 export default function Home() {
   const router = useRouter();
@@ -43,7 +48,10 @@ export default function Home() {
     const pending = sessionStorage.getItem(PENDING_ESTOQUE_KEY);
     if (pending === "1") {
       sessionStorage.removeItem(PENDING_ESTOQUE_KEY);
-      router.push("/estoque");
+      const dest =
+        sessionStorage.getItem(ESTOQUE_DESTINO_POS_LOGIN_KEY) ?? "/estoque/solicitar";
+      sessionStorage.removeItem(ESTOQUE_DESTINO_POS_LOGIN_KEY);
+      router.push(dest.startsWith("/estoque") ? dest : "/estoque/solicitar");
     }
   }, [usuario, router]);
 

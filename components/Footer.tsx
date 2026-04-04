@@ -1,5 +1,7 @@
 "use client";
 
+import Link from "next/link";
+
 export default function Footer() {
   return (
     <footer className="bg-slate-800 text-gray-300 mt-0">
@@ -18,9 +20,21 @@ export default function Footer() {
         <div>
           <h3 className="text-white font-semibold mb-3">Links Rápidos</h3>
           <ul className="space-y-2 text-sm">
-            <li className="hover:text-white cursor-pointer">Início</li>
-            <li className="hover:text-white cursor-pointer">Buscar Produtos</li>
-            <li className="hover:text-white cursor-pointer">Cadastrar Loja no Udiz Estoque</li>
+            <li>
+              <Link href="/" className="hover:text-white">
+                Início
+              </Link>
+            </li>
+            <li>
+              <Link href="/busca" className="hover:text-white">
+                Buscar Produtos
+              </Link>
+            </li>
+            <li>
+              <Link href="/estoque/solicitar" className="hover:text-white">
+                Cadastrar Loja no Udiz Estoque
+              </Link>
+            </li>
           </ul>
         </div>
 

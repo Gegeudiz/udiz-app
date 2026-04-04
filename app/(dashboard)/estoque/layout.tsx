@@ -1,12 +1,19 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { usePathname, useRouter } from "next/navigation";
 import Header from "@/components/Header";
 import ModalLogin from "@/components/ModalLogin";
 import { getDataProvider } from "@/lib/repositories/provider";
+import { remoteUsuarioTemAcessoEstoque } from "@/lib/supabase/estoqueSolicitacao";
 import type { Usuario } from "@/lib/types";
-import { readUsuario, refreshUsuarioFromSupabaseSession, writeUsuario } from "@/lib/usuario";
+import {
+  ESTOQUE_DESTINO_POS_LOGIN_KEY,
+  PENDING_ESTOQUE_KEY,
+  readUsuario,
+  refreshUsuarioFromSupabaseSession,
+  writeUsuario,
+} from "@/lib/usuario";
 
 export default function EstoqueLayout({
   children,
@@ -14,9 +21,13 @@ export default function EstoqueLayout({
   children: React.ReactNode;
 }) {
   const router = useRouter();
+  const pathname = usePathname();
+  const isPaginaSolicitar = pathname === "/estoque/solicitar";
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [authReady, setAuthReady] = useState(false);
   const [abrirLogin, setAbrirLogin] = useState(false);
+  const [gateEstoqueOk, setGateEstoqueOk] = useState(false);
+  const [gateEstoqueCarregando, setGateEstoqueCarregando] = useState(true);
 
   useEffect(() => {
     let cancelled = false;
@@ -51,8 +62,37 @@ export default function EstoqueLayout({
 
   useEffect(() => {
     if (!authReady) return;
-    if (!usuario) router.replace("/?estoque=1");
-  }, [authReady, usuario, router]);
+    if (usuario) return;
+    if (typeof window !== "undefined") {
+      sessionStorage.setItem(PENDING_ESTOQUE_KEY, "1");
+      const p = pathname || "";
+      sessionStorage.setItem(
+        ESTOQUE_DESTINO_POS_LOGIN_KEY,
+        p.startsWith("/estoque") ? p : "/estoque/solicitar"
+      );
+    }
+    router.replace("/?estoque=1");
+  }, [authReady, usuario, router, pathname]);
+
+  useEffect(() => {
+    if (!authReady || !usuario) return;
+    if (getDataProvider() !== "supabase") {
+      setGateEstoqueCarregando(false);
+      setGateEstoqueOk(true);
+      return;
+    }
+    if (isPaginaSolicitar) {
+      setGateEstoqueCarregando(false);
+      setGateEstoqueOk(true);
+      return;
+    }
+    setGateEstoqueCarregando(true);
+    void remoteUsuarioTemAcessoEstoque().then((ok) => {
+      setGateEstoqueOk(ok);
+      setGateEstoqueCarregando(false);
+      if (!ok) router.replace("/estoque/solicitar");
+    });
+  }, [authReady, usuario, isPaginaSolicitar, router]);
 
   if (!authReady) {
     return (
@@ -66,6 +106,23 @@ export default function EstoqueLayout({
     return (
       <div className="min-h-screen bg-gray-100 flex items-center justify-center text-gray-600">
         Redirecionando...
+      </div>
+    );
+  }
+
+  const supabaseOn = getDataProvider() === "supabase";
+  const aguardandoGate = supabaseOn && !isPaginaSolicitar && gateEstoqueCarregando;
+  if (aguardandoGate) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center text-gray-600">
+        Verificando acesso ao Udiz Estoque…
+      </div>
+    );
+  }
+  if (supabaseOn && !isPaginaSolicitar && !gateEstoqueOk) {
+    return (
+      <div className="min-h-screen bg-gray-100 flex items-center justify-center text-gray-600">
+        Redirecionando…
       </div>
     );
   }

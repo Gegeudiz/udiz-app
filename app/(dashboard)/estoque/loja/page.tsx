@@ -93,10 +93,12 @@ export default function CriarLoja() {
       />
 
       <input
-        placeholder="WhatsApp"
+        placeholder="WhatsApp (DDD + número, mín. 8 dígitos)"
         value={whatsapp}
         onChange={(e) => setWhatsapp(e.target.value)}
         className="w-full mb-3 p-2 border border-gray-300 rounded-lg"
+        inputMode="tel"
+        autoComplete="tel"
       />
 
       <textarea

@@ -8,8 +8,11 @@ import { canEditLoja } from "@/lib/authz";
 import { findLojaById, getLojasFromStorage, getProdutosFromStorage } from "@/lib/catalogo";
 import { getDataProvider } from "@/lib/repositories/provider";
 import { lojaRepo, produtoRepo } from "@/lib/repositories/localDb";
+import ConfirmarExclusaoModal from "@/components/ConfirmarExclusaoModal";
 import {
   remoteCreateProduto,
+  remoteDeleteLoja,
+  remoteDeleteProduto,
   remoteGetLojaDoDono,
   remoteListProdutosDaLoja,
   remoteUpdateLoja,
@@ -68,6 +71,10 @@ function MinhaLojaContent() {
   const produtoFotoInputRef = useRef<HTMLInputElement>(null);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
+  const [excluirDialog, setExcluirDialog] = useState<
+    null | { tipo: "loja"; nome: string } | { tipo: "produto"; id: string; nome: string }
+  >(null);
+  const [excluindo, setExcluindo] = useState(false);
 
   const recarregar = useCallback(() => {
     const usuario = readUsuario();
@@ -279,6 +286,54 @@ function MinhaLojaContent() {
     recarregar();
   };
 
+  const confirmarExclusao = async () => {
+    if (!excluirDialog || !loja) return;
+    const usuario = readUsuario();
+    if (!usuario || !canEditLoja(usuario, loja)) return;
+    setExcluindo(true);
+    setErro("");
+    try {
+      if (excluirDialog.tipo === "loja") {
+        const r =
+          getDataProvider() === "supabase"
+            ? await remoteDeleteLoja(lojaId)
+            : lojaRepo.delete(lojaId, usuario.id);
+        if (!r.ok) {
+          setErro(r.message);
+          return;
+        }
+        trackEvent("estoque_loja_excluida", { userId: usuario.id, lojaId });
+        if (typeof window !== "undefined") {
+          window.dispatchEvent(new CustomEvent("udiz:catalogo-atualizado"));
+        }
+        setExcluirDialog(null);
+        router.push("/estoque");
+        return;
+      }
+      const r =
+        getDataProvider() === "supabase"
+          ? await remoteDeleteProduto(excluirDialog.id, lojaId)
+          : produtoRepo.delete(excluirDialog.id, lojaId);
+      if (!r.ok) {
+        setErro(r.message);
+        return;
+      }
+      trackEvent("estoque_produto_excluido", {
+        userId: usuario.id,
+        lojaId,
+        produtoId: excluirDialog.id,
+      });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("udiz:catalogo-atualizado"));
+      }
+      setSucesso(`Produto "${excluirDialog.nome}" excluído.`);
+      setExcluirDialog(null);
+      recarregar();
+    } finally {
+      setExcluindo(false);
+    }
+  };
+
   const handleFotoProduto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -346,13 +401,22 @@ function MinhaLojaContent() {
           {loja.descricao ? (
             <p className="text-sm text-gray-500 mt-2">{loja.descricao}</p>
           ) : null}
-          <button
-            type="button"
-            onClick={abrirModalNovaLoja}
-            className="mt-4 text-sm font-semibold text-purple-700 border border-purple-300 hover:bg-purple-50 px-4 py-2 rounded-lg"
-          >
-            Editar loja
-          </button>
+          <div className="mt-4 flex flex-wrap gap-2">
+            <button
+              type="button"
+              onClick={abrirModalNovaLoja}
+              className="text-sm font-semibold text-purple-700 border border-purple-300 hover:bg-purple-50 px-4 py-2 rounded-lg"
+            >
+              Editar loja
+            </button>
+            <button
+              type="button"
+              onClick={() => loja && setExcluirDialog({ tipo: "loja", nome: loja.nome })}
+              className="text-sm font-semibold text-red-700 border border-red-200 hover:bg-red-50 px-4 py-2 rounded-lg"
+            >
+              Excluir loja
+            </button>
+          </div>
         </div>
       </div>
 
@@ -378,13 +442,22 @@ function MinhaLojaContent() {
               <ProductCardNome>{p.nome}</ProductCardNome>
               <ProductCardPreco valor={Number(p.preco)} />
               <p className="text-xs text-gray-500">{p.categoria}</p>
-              <button
-                type="button"
-                onClick={() => abrirModalEditarProduto(p)}
-                className="mt-auto pt-2 text-xs font-semibold text-purple-700 hover:underline text-left"
-              >
-                Editar
-              </button>
+              <div className="mt-auto pt-2 flex flex-wrap gap-x-3 gap-y-1">
+                <button
+                  type="button"
+                  onClick={() => abrirModalEditarProduto(p)}
+                  className="text-xs font-semibold text-purple-700 hover:underline text-left"
+                >
+                  Editar
+                </button>
+                <button
+                  type="button"
+                  onClick={() => setExcluirDialog({ tipo: "produto", id: p.id, nome: p.nome })}
+                  className="text-xs font-semibold text-red-600 hover:underline text-left"
+                >
+                  Excluir
+                </button>
+              </div>
             </div>
           ))}
         </div>
@@ -479,6 +552,27 @@ function MinhaLojaContent() {
           </div>
         </div>
       )}
+
+      <ConfirmarExclusaoModal
+        aberto={excluirDialog != null}
+        titulo={
+          excluirDialog?.tipo === "loja"
+            ? "Excluir loja?"
+            : excluirDialog?.tipo === "produto"
+              ? "Excluir produto?"
+              : ""
+        }
+        descricao={
+          excluirDialog?.tipo === "loja"
+            ? `Tem certeza que deseja excluir a loja "${excluirDialog.nome}"? Todos os produtos desta loja serão removidos. Esta ação não pode ser desfeita.`
+            : excluirDialog?.tipo === "produto"
+              ? `Tem certeza que deseja excluir o produto "${excluirDialog.nome}"? Esta ação não pode ser desfeita.`
+              : ""
+        }
+        onCancelar={() => !excluindo && setExcluirDialog(null)}
+        onConfirmar={() => void confirmarExclusao()}
+        carregando={excluindo}
+      />
 
       {modalProdutoAberto && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50">

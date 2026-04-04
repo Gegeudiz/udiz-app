@@ -2,7 +2,8 @@
 
 import { useRouter } from "next/navigation";
 import type { Usuario } from "@/lib/types";
-import { PENDING_ESTOQUE_KEY } from "@/lib/usuario";
+import { abrirWhatsAppEspecialistaUdiz } from "@/lib/udizWhatsApp";
+import { ESTOQUE_DESTINO_POS_LOGIN_KEY, PENDING_ESTOQUE_KEY } from "@/lib/usuario";
 
 type Props = {
   usuario: Usuario | null;
@@ -14,11 +15,12 @@ export default function BannerLoja({ usuario, onPrecisaLogin }: Props) {
 
   const irParaEstoque = () => {
     if (usuario) {
-      router.push("/estoque");
+      router.push("/estoque/solicitar");
       return;
     }
     if (typeof window !== "undefined") {
       sessionStorage.setItem(PENDING_ESTOQUE_KEY, "1");
+      sessionStorage.setItem(ESTOQUE_DESTINO_POS_LOGIN_KEY, "/estoque/solicitar");
     }
     onPrecisaLogin();
   };
@@ -49,7 +51,8 @@ export default function BannerLoja({ usuario, onPrecisaLogin }: Props) {
 
             <button
               type="button"
-              className="bg-white text-purple-800 px-4 py-2 rounded-lg font-semibold"
+              onClick={() => abrirWhatsAppEspecialistaUdiz()}
+              className="bg-white text-purple-800 px-4 py-2 rounded-lg font-semibold hover:bg-purple-50"
             >
               Falar com Especialista
             </button>

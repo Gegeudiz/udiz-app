@@ -26,14 +26,18 @@ export async function remoteSaveUsuarioPerfil(input: {
     };
   }
 
-  const { error } = await ctx.supabase
-    .from("usuarios")
-    .update({
+  // upsert: cria a linha em public.usuarios se o trigger on_auth_user_created
+  // não tiver rodado (migração antiga / projeto sem trigger). update sozinho não
+  // insere e o PostgREST costuma não retornar erro quando 0 linhas batem.
+  const { error } = await ctx.supabase.from("usuarios").upsert(
+    {
+      id: ctx.userId,
       nome: input.nome.trim(),
       bio: input.bio.trim(),
       foto,
-    })
-    .eq("id", ctx.userId);
+    },
+    { onConflict: "id" }
+  );
 
   if (error) return { ok: false, message: error.message };
 

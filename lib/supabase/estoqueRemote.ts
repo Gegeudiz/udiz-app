@@ -285,3 +285,51 @@ export async function remoteGetLojaDoDono(lojaId: string): Promise<Loja | null> 
   if (error || !data) return null;
   return mapLoja(data as LojaRow);
 }
+
+export async function remoteDeleteLoja(
+  lojaId: string
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const ctx = await requireSupabaseSession();
+  if ("error" in ctx) return { ok: false, message: ctx.error };
+  const { error } = await ctx.supabase
+    .from("lojas")
+    .delete()
+    .eq("id", lojaId)
+    .eq("owner_id", ctx.userId);
+  if (error) {
+    return {
+      ok: false,
+      message: error.message || "Não foi possível excluir a loja. Tente de novo.",
+    };
+  }
+  return { ok: true };
+}
+
+export async function remoteDeleteProduto(
+  produtoId: string,
+  lojaId: string
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  const ctx = await requireSupabaseSession();
+  if ("error" in ctx) return { ok: false, message: ctx.error };
+  const { data: lojaOk } = await ctx.supabase
+    .from("lojas")
+    .select("id")
+    .eq("id", lojaId)
+    .eq("owner_id", ctx.userId)
+    .maybeSingle();
+  if (!lojaOk) {
+    return { ok: false, message: "Somente o dono da loja pode excluir produtos." };
+  }
+  const { error } = await ctx.supabase
+    .from("produtos")
+    .delete()
+    .eq("id", produtoId)
+    .eq("loja_id", lojaId);
+  if (error) {
+    return {
+      ok: false,
+      message: error.message || "Não foi possível excluir o produto. Tente de novo.",
+    };
+  }
+  return { ok: true };
+}

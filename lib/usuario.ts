@@ -19,3 +19,6 @@ export async function refreshUsuarioFromSupabaseSession(): Promise<void> {
 
 export const PENDING_ESTOQUE_KEY = "udiz_pending_estoque";
 
+/** Após login, rota em `/estoque/...` para onde redirecionar (ex.: `/estoque/solicitar`). */
+export const ESTOQUE_DESTINO_POS_LOGIN_KEY = "udiz_estoque_dest";
+

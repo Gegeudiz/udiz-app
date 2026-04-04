@@ -28,6 +28,7 @@ export default function PerfilPage() {
   const [erroFoto, setErroFoto] = useState<string | null>(null);
   const [salvando, setSalvando] = useState(false);
   const [erroSalvar, setErroSalvar] = useState<string | null>(null);
+  const [mostrarBemVindoEmail, setMostrarBemVindoEmail] = useState(false);
 
   const recarregar = useCallback(() => {
     const u = readUsuario();
@@ -50,6 +51,14 @@ export default function PerfilPage() {
   useEffect(() => {
     void refreshUsuarioFromSupabaseSession().then(() => recarregar());
   }, [recarregar]);
+
+  useEffect(() => {
+    if (typeof window === "undefined") return;
+    const q = new URLSearchParams(window.location.search);
+    if (q.get("bemvindo") !== "1") return;
+    setMostrarBemVindoEmail(true);
+    window.history.replaceState({}, "", window.location.pathname);
+  }, []);
 
   const salvarPerfil = async () => {
     setErroSalvar(null);
@@ -161,6 +170,24 @@ export default function PerfilPage() {
           </div>
         ) : (
           <>
+            {mostrarBemVindoEmail ? (
+              <div
+                role="status"
+                className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+              >
+                <p className="font-semibold">Obrigado por validar seu email.</p>
+                <p className="mt-1 text-emerald-800/90">
+                  Sua conta já funcionava antes; este passo só confirma que este endereço é seu.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setMostrarBemVindoEmail(false)}
+                  className="mt-2 text-xs font-semibold text-emerald-800 underline"
+                >
+                  Fechar
+                </button>
+              </div>
+            ) : null}
             <div className="relative mb-8 overflow-hidden rounded-2xl bg-gradient-to-r from-purple-600 via-violet-600 to-orange-500 shadow-md ring-1 ring-black/5">
               <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
               <div className="pointer-events-none absolute -bottom-8 left-1/4 h-32 w-64 rounded-full bg-orange-400/20 blur-2xl" />
@@ -237,7 +264,7 @@ export default function PerfilPage() {
                 </Link>
                 <button
                   type="button"
-                  onClick={() => router.push("/estoque")}
+                  onClick={() => router.push("/estoque/solicitar")}
                   className="flex flex-col text-left rounded-xl border border-gray-200 bg-gray-50/80 p-4 hover:border-orange-200 hover:bg-orange-50/50 transition-colors"
                 >
                   <span className="text-2xl">📦</span>

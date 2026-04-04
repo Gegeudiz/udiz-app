@@ -59,6 +59,12 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     carregar();
   }, [carregar]);
 
+  useEffect(() => {
+    const onAtualizar = () => carregar();
+    window.addEventListener("udiz:catalogo-atualizado", onAtualizar);
+    return () => window.removeEventListener("udiz:catalogo-atualizado", onAtualizar);
+  }, [carregar]);
+
   const value = useMemo<CatalogValue>(
     () => ({
       lojas,

@@ -156,6 +156,18 @@ export const lojaRepo = {
     safeWriteJson(KEYS.lojas, list);
     return parsed;
   },
+  delete(id: string, ownerId: string): { ok: true } | { ok: false; message: string } {
+    const list = this.list();
+    const idx = list.findIndex((l) => l.id === id);
+    if (idx < 0) return { ok: false, message: "Loja não encontrada." };
+    if (list[idx].ownerId !== ownerId) {
+      return { ok: false, message: "Somente quem criou a loja pode excluí-la." };
+    }
+    list.splice(idx, 1);
+    safeWriteJson(KEYS.lojas, list);
+    produtoRepo.removeAllFromLoja(id);
+    return { ok: true };
+  },
 };
 
 export const produtoRepo = {
@@ -199,6 +211,18 @@ export const produtoRepo = {
     list[idx] = parsed.data;
     safeWriteJson(KEYS.produtos, list);
     return parsed;
+  },
+  removeAllFromLoja(lojaId: string): void {
+    const list = this.list().filter((p) => p.loja_id !== lojaId);
+    safeWriteJson(KEYS.produtos, list);
+  },
+  delete(id: string, lojaId: string): { ok: true } | { ok: false; message: string } {
+    const list = this.list();
+    const idx = list.findIndex((p) => p.id === id && p.loja_id === lojaId);
+    if (idx < 0) return { ok: false, message: "Produto não encontrado." };
+    list.splice(idx, 1);
+    safeWriteJson(KEYS.produtos, list);
+    return { ok: true };
   },
 };
 

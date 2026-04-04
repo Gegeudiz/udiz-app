@@ -5,7 +5,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useState } from "react";
 import { encerrarSessaoApp } from "@/lib/auth/logout";
-import { PENDING_ESTOQUE_KEY } from "@/lib/usuario";
+import { ESTOQUE_DESTINO_POS_LOGIN_KEY, PENDING_ESTOQUE_KEY } from "@/lib/usuario";
 import type { Usuario } from "@/lib/types";
 
 type HeaderProps = {
@@ -22,12 +22,14 @@ export default function Header({ usuario, abrirLogin, onLogout }: HeaderProps) {
     if (usuario) {
       if (typeof window !== "undefined") {
         sessionStorage.removeItem(PENDING_ESTOQUE_KEY);
+        sessionStorage.removeItem(ESTOQUE_DESTINO_POS_LOGIN_KEY);
       }
-      router.push("/estoque");
+      router.push("/estoque/solicitar");
       return;
     }
     if (typeof window !== "undefined") {
       sessionStorage.setItem(PENDING_ESTOQUE_KEY, "1");
+      sessionStorage.setItem(ESTOQUE_DESTINO_POS_LOGIN_KEY, "/estoque/solicitar");
     }
     abrirLogin?.();
   };
@@ -46,13 +48,18 @@ export default function Header({ usuario, abrirLogin, onLogout }: HeaderProps) {
         </Link>
 
         <div className="flex items-start md:items-center gap-2 md:gap-4 shrink-0 pt-0.5 md:pt-0">
-          <button
-            type="button"
-            onClick={irUdizEstoque}
-            className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-3 py-2 md:px-4 rounded-lg text-xs md:text-sm shadow-sm transition-colors whitespace-nowrap"
-          >
-            Udiz Estoque
-          </button>
+          <div className="flex flex-col items-center gap-0.5">
+            <button
+              type="button"
+              onClick={irUdizEstoque}
+              className="bg-orange-500 hover:bg-orange-600 text-white font-semibold px-3 py-2 md:px-4 rounded-lg text-xs md:text-sm shadow-sm transition-colors whitespace-nowrap"
+            >
+              Udiz Estoque
+            </button>
+            <span className="text-[10px] md:text-xs text-gray-600 leading-tight text-center">
+              adicione sua loja
+            </span>
+          </div>
 
           {usuario ? (
             <div className="relative flex flex-col items-end">
