@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import Link from "next/link";
 import { useRouter } from "next/navigation";
 import type { Loja, Produto } from "@/lib/types";
 import { getDataProvider } from "@/lib/repositories/provider";
@@ -188,11 +189,27 @@ export default function EstoqueGerenciamentoPage() {
           <p className="text-sm text-gray-700 mt-3 leading-relaxed">{incentivo}</p>
           <button
             type="button"
-            onClick={() => router.push("/busca")}
-            className="mt-4 w-full rounded-lg bg-purple-600 hover:bg-purple-700 text-white text-sm py-2.5 font-semibold"
+            disabled={loading || lojas.length === 0}
+            title={
+              lojas.length === 0 && !loading
+                ? "Cadastre uma loja para ver a vitrine como o cliente"
+                : undefined
+            }
+            onClick={() => {
+              if (lojas.length === 0) return;
+              const id = lojas[0]!.id;
+              window.open(`/loja/${encodeURIComponent(id)}`, "_blank", "noopener,noreferrer");
+            }}
+            className="mt-4 w-full rounded-lg bg-purple-600 hover:bg-purple-700 disabled:opacity-50 disabled:cursor-not-allowed text-white text-sm py-2.5 font-semibold"
           >
-            Ver como o cliente vê os produtos
+            Ver como o cliente acessa a minha Loja
           </button>
+          {lojas.length > 1 ? (
+            <p className="text-xs text-gray-600 mt-2">
+              Com mais de uma loja, este atalho abre a vitrine da primeira. Em cada card abaixo há
+              também o link direto para aquela loja.
+            </p>
+          ) : null}
         </article>
       </section>
 
@@ -214,32 +231,46 @@ export default function EstoqueGerenciamentoPage() {
           <h2 className="text-lg font-bold text-gray-900 mb-3">Suas lojas</h2>
           <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4">
           {lojas.map((loja) => (
-            <button
+            <div
               key={loja.id}
-              type="button"
-              onClick={() => router.push(`/estoque/minha-loja?id=${loja.id}`)}
-              className="text-left bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition overflow-hidden"
+              className="text-left bg-white rounded-xl border border-gray-200 shadow-sm hover:shadow-md transition overflow-hidden flex flex-col"
             >
-              {loja.imagem ? (
-                <img
-                  src={loja.imagem}
-                  alt={loja.nome}
-                  className="w-full h-36 object-cover"
-                />
-              ) : (
-                <div className="w-full h-36 bg-gray-100 flex items-center justify-center text-gray-400 text-sm">
-                  Sem foto
+              <button
+                type="button"
+                onClick={() => router.push(`/estoque/minha-loja?id=${loja.id}`)}
+                className="text-left w-full"
+              >
+                {loja.imagem ? (
+                  <img
+                    src={loja.imagem}
+                    alt={loja.nome}
+                    className="w-full h-36 object-cover"
+                  />
+                ) : (
+                  <div className="w-full h-36 bg-gray-100 flex items-center justify-center text-gray-400 text-sm">
+                    Sem foto
+                  </div>
+                )}
+                <div className="p-4 pb-2">
+                  <h2 className="font-bold text-gray-900">{loja.nome}</h2>
+                  <p className="text-sm text-gray-600 mt-1">
+                    {rotuloLocalPublicoLoja(loja) || loja.endereco}
+                  </p>
+                  <p className="text-sm text-purple-700 mt-2">WhatsApp: {loja.whatsapp}</p>
+                  <p className="text-xs text-purple-600 mt-3 font-medium">Gerenciar loja →</p>
                 </div>
-              )}
-              <div className="p-4">
-                <h2 className="font-bold text-gray-900">{loja.nome}</h2>
-                <p className="text-sm text-gray-600 mt-1">
-                  {rotuloLocalPublicoLoja(loja) || loja.endereco}
-                </p>
-                <p className="text-sm text-purple-700 mt-2">WhatsApp: {loja.whatsapp}</p>
-                <p className="text-xs text-purple-600 mt-3 font-medium">Abrir loja →</p>
+              </button>
+              <div className="px-4 pb-4 pt-0">
+                <Link
+                  href={`/loja/${encodeURIComponent(loja.id)}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-xs font-semibold text-cyan-700 hover:text-cyan-900 hover:underline"
+                >
+                  Ver como o cliente acessa esta loja
+                </Link>
               </div>
-            </button>
+            </div>
           ))}
           </div>
         </div>
