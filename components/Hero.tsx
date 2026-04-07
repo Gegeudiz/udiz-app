@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CIDADES_DISPONIVEIS, readCidadeSelecionada, writeCidadeSelecionada } from "@/lib/cidades";
+import BannerPromocional from "./BannerPromocional";
 
 export default function Hero() {
   const router = useRouter();
@@ -28,10 +29,11 @@ export default function Hero() {
   ];
 
   return (
-    <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white py-12 px-4">
+    <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white pb-12">
+      <BannerPromocional />
 
-      {/* TEXTO */}
-      <div className="max-w-4xl mx-auto text-center">
+      {/* TEXTO + BUSCA */}
+      <div className="max-w-4xl mx-auto text-center px-4 pt-8 md:pt-10">
         <h1 className="text-2xl md:text-4xl font-bold">
           Encontre produtos{" "}
           <span className="text-orange-400">perto de você!</span>
@@ -41,7 +43,6 @@ export default function Hero() {
           Fácil e rápido. O que você precisa está logo ali!
         </p>
 
-        {/* BUSCA */}
         <div className="mt-6 flex flex-col md:flex-row gap-3 justify-center">
           <select
             value={cidade}
@@ -87,7 +88,7 @@ export default function Hero() {
       </div>
 
       {/* CATEGORIAS */}
-      <div className="max-w-6xl mx-auto mt-10">
+      <div className="max-w-6xl mx-auto mt-10 px-4 md:px-0">
 
       <div
   ref={scrollRef}
@@ -97,7 +98,7 @@ export default function Hero() {
     no-scrollbar
     flex-nowrap md:flex-wrap
     justify-start md:justify-center
-    px-4 md:px-0
+    md:px-0
   "
 >
           {categorias.map((cat) => (
