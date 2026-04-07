@@ -45,7 +45,7 @@ export default function BannerPromocional() {
     >
       <div className="relative rounded-xl md:rounded-2xl overflow-hidden bg-white/10 ring-1 ring-white/20 shadow-xl">
         <div
-          className="relative w-full aspect-[3/1] md:aspect-[4/1] touch-pan-y"
+          className="relative w-full aspect-[3/1] md:aspect-[16/5] touch-pan-y"
           onTouchStart={(e) => {
             touchStartX.current = e.touches[0]?.clientX ?? null;
           }}

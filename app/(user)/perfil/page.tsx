@@ -9,6 +9,11 @@ import ModalLogin from "@/components/ModalLogin";
 import { fileToDataUrl, validateImageFile } from "@/lib/files";
 import { getSalvosIds } from "@/lib/favoritos";
 import { getDataProvider } from "@/lib/repositories/provider";
+import PasswordToggleField from "@/components/PasswordToggleField";
+import {
+  getSupabaseSessionUserEmail,
+  reauthenticateAndUpdatePassword,
+} from "@/lib/supabase/authSession";
 import { remoteSaveUsuarioPerfil } from "@/lib/supabase/perfilRemote";
 import { trackEvent } from "@/lib/telemetry";
 import type { Usuario } from "@/lib/types";
@@ -20,7 +25,12 @@ export default function PerfilPage() {
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [loginAberto, setLoginAberto] = useState(false);
   const [nome, setNome] = useState("");
-  const [bio, setBio] = useState("");
+  const [senhaAtual, setSenhaAtual] = useState("");
+  const [novaSenha, setNovaSenha] = useState("");
+  const [confirmarSenha, setConfirmarSenha] = useState("");
+  const [mostrarSenhaAtual, setMostrarSenhaAtual] = useState(false);
+  const [mostrarNovaSenha, setMostrarNovaSenha] = useState(false);
+  const [mostrarConfirmarSenha, setMostrarConfirmarSenha] = useState(false);
   const [fotoPreview, setFotoPreview] = useState<string | null>(null);
   const [fotoFile, setFotoFile] = useState<File | null>(null);
   const [salvosCount, setSalvosCount] = useState(0);
@@ -29,19 +39,24 @@ export default function PerfilPage() {
   const [salvando, setSalvando] = useState(false);
   const [erroSalvar, setErroSalvar] = useState<string | null>(null);
   const [mostrarBemVindoEmail, setMostrarBemVindoEmail] = useState(false);
+  const [mostrarSenhaRedefinida, setMostrarSenhaRedefinida] = useState(false);
 
   const recarregar = useCallback(() => {
     const u = readUsuario();
     setUsuario(u);
     if (u) {
       setNome(u.nome);
-      setBio(u.bio ?? "");
+      setSenhaAtual("");
+      setNovaSenha("");
+      setConfirmarSenha("");
       setFotoFile(null);
       setFotoPreview(u.foto ?? null);
       setSalvosCount(getSalvosIds(u.id).length);
     } else {
       setNome("");
-      setBio("");
+      setSenhaAtual("");
+      setNovaSenha("");
+      setConfirmarSenha("");
       setFotoFile(null);
       setFotoPreview(null);
       setSalvosCount(0);
@@ -55,9 +70,15 @@ export default function PerfilPage() {
   useEffect(() => {
     if (typeof window === "undefined") return;
     const q = new URLSearchParams(window.location.search);
-    if (q.get("bemvindo") !== "1") return;
-    setMostrarBemVindoEmail(true);
-    window.history.replaceState({}, "", window.location.pathname);
+    if (q.get("bemvindo") === "1") {
+      setMostrarBemVindoEmail(true);
+      window.history.replaceState({}, "", window.location.pathname);
+      return;
+    }
+    if (q.get("senha") === "redefinida") {
+      setMostrarSenhaRedefinida(true);
+      window.history.replaceState({}, "", window.location.pathname);
+    }
   }, []);
 
   const salvarPerfil = async () => {
@@ -69,11 +90,54 @@ export default function PerfilPage() {
       setTimeout(() => setMsg("idle"), 2500);
       return;
     }
+
+    const querTrocarSenha =
+      novaSenha.trim().length > 0 || confirmarSenha.trim().length > 0 || senhaAtual.trim().length > 0;
+    if (querTrocarSenha) {
+      if (getDataProvider() !== "supabase") {
+        setErroSalvar("Alteração de senha só está disponível com login na nuvem.");
+        return;
+      }
+      if (!novaSenha.trim() && !confirmarSenha.trim() && senhaAtual.trim()) {
+        setErroSalvar("Preencha a nova senha e a confirmação para alterar.");
+        return;
+      }
+      if (novaSenha.trim().length > 0 || confirmarSenha.trim().length > 0) {
+        if (!senhaAtual.trim()) {
+          setErroSalvar("Digite sua senha atual para confirmar a troca.");
+          return;
+        }
+        if (novaSenha !== confirmarSenha) {
+          setErroSalvar("As novas senhas não coincidem.");
+          return;
+        }
+        if (novaSenha.length < 6) {
+          setErroSalvar("A nova senha deve ter pelo menos 6 caracteres.");
+          return;
+        }
+        const email = await getSupabaseSessionUserEmail();
+        if (!email) {
+          setErroSalvar("Não foi possível obter o email da sessão. Entre novamente.");
+          return;
+        }
+        setSalvando(true);
+        const pw = await reauthenticateAndUpdatePassword(email, senhaAtual, novaSenha);
+        setSalvando(false);
+        if (!pw.ok) {
+          setErroSalvar(pw.message);
+          return;
+        }
+        setSenhaAtual("");
+        setNovaSenha("");
+        setConfirmarSenha("");
+      }
+    }
+
     if (getDataProvider() === "supabase") {
       setSalvando(true);
       const r = await remoteSaveUsuarioPerfil({
         nome: trimmed,
-        bio: bio.trim(),
+        bio: (usuario.bio ?? "").trim(),
         foto: fotoPreview,
         fotoFile,
       });
@@ -96,7 +160,7 @@ export default function PerfilPage() {
     const atualizado: Usuario = {
       ...usuario,
       nome: trimmed,
-      bio: bio.trim(),
+      bio: usuario.bio ?? "",
       foto: fotoPreview,
     };
     writeUsuario(atualizado);
@@ -188,16 +252,36 @@ export default function PerfilPage() {
                 </button>
               </div>
             ) : null}
+            {mostrarSenhaRedefinida ? (
+              <div
+                role="status"
+                className="mb-4 rounded-xl border border-emerald-200 bg-emerald-50 px-4 py-3 text-sm text-emerald-900"
+              >
+                <p className="font-semibold">Senha redefinida com sucesso.</p>
+                <p className="mt-1 text-emerald-800/90">
+                  Use seu email e a nova senha para entrar neste ou em outro aparelho.
+                </p>
+                <button
+                  type="button"
+                  onClick={() => setMostrarSenhaRedefinida(false)}
+                  className="mt-2 text-xs font-semibold text-emerald-800 underline"
+                >
+                  Fechar
+                </button>
+              </div>
+            ) : null}
             <div className="relative mb-8 overflow-hidden rounded-2xl bg-gradient-to-r from-purple-600 via-violet-600 to-orange-500 shadow-md ring-1 ring-black/5">
               <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-white/10 blur-2xl" />
               <div className="pointer-events-none absolute -bottom-8 left-1/4 h-32 w-64 rounded-full bg-orange-400/20 blur-2xl" />
               <div className="relative px-6 pb-10 pt-8 md:px-8 md:pb-12 md:pt-10">
-                <p className="text-sm font-medium text-white/90">Olá de novo</p>
+                <p className="text-sm font-medium text-white/90">Olá</p>
                 <h1 className="mt-1 text-2xl md:text-3xl font-bold text-white tracking-tight">
                   {usuario.nome}
                 </h1>
-                <p className="mt-2 max-w-lg text-sm text-white/85">
-                  Personalize como aparece no app e acompanhe o que você curtiu no marketplace.
+                <p className="mt-2 max-w-lg text-sm text-white/85 leading-relaxed">
+                  Bem vindo ao Udiz! Compare preços, veja a distância, fale com a Loja, veja onde faz
+                  mais sentido comprar! Agora você não precisa mais sair por aí até encontrar o produto
+                  que você precisa!
                 </p>
               </div>
             </div>
@@ -275,17 +359,7 @@ export default function PerfilPage() {
 
               <section className="rounded-2xl border border-gray-200 bg-white p-5 md:p-6 shadow-sm">
                 <h2 className="text-lg font-bold text-gray-900">Dados do perfil</h2>
-                <p className="text-sm text-gray-500 mt-1 mb-5">
-                  Nome e bio aparecem para você no app; em breve poderão ser públicos com sua escolha.
-                  {getDataProvider() === "supabase" ? (
-                    <span className="block mt-2 text-gray-600">
-                      Com a nuvem ativa, a foto do perfil é enviada ao Supabase Storage e o link fica em{" "}
-                      <code className="text-xs bg-gray-100 px-1 rounded">usuarios.foto</code> — não se
-                      perde ao trocar de aparelho.
-                    </span>
-                  ) : null}
-                </p>
-                <label className="block">
+                <label className="block mt-5">
                   <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
                     Nome
                   </span>
@@ -298,22 +372,65 @@ export default function PerfilPage() {
                     maxLength={80}
                   />
                 </label>
-                <label className="block mt-4">
+                <div className="mt-4">
                   <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
-                    Bio <span className="font-normal normal-case text-gray-400">(opcional)</span>
+                    Senha <span className="font-normal normal-case text-gray-400">(alterar senha)</span>
                   </span>
-                  <textarea
-                    value={bio}
-                    onChange={(e) => setBio(e.target.value)}
-                    rows={3}
-                    maxLength={200}
-                    className="mt-1.5 w-full resize-none rounded-xl border border-gray-300 px-4 py-3 text-gray-900 placeholder:text-gray-400 focus:border-purple-500 focus:outline-none focus:ring-2 focus:ring-purple-500/30"
-                    placeholder="Uma linha sobre você, bairro ou o que costuma comprar..."
-                  />
-                  <span className="mt-1 block text-right text-xs text-gray-400">
-                    {bio.length}/200
-                  </span>
-                </label>
+                  {getDataProvider() === "supabase" ? (
+                    <div className="mt-1.5 space-y-3">
+                      <p className="text-xs text-gray-500">
+                        Por segurança, a senha não é exibida: digite a senha atual para confirmar a troca.
+                      </p>
+                      <label className="block">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                          Senha atual
+                        </span>
+                        <PasswordToggleField
+                          showPassword={mostrarSenhaAtual}
+                          onToggleShow={() => setMostrarSenhaAtual((v) => !v)}
+                          value={senhaAtual}
+                          onChange={(e) => setSenhaAtual(e.target.value)}
+                          autoComplete="current-password"
+                          className="mt-1.5"
+                          placeholder="Digite sua senha atual"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                          Nova senha
+                        </span>
+                        <PasswordToggleField
+                          showPassword={mostrarNovaSenha}
+                          onToggleShow={() => setMostrarNovaSenha((v) => !v)}
+                          value={novaSenha}
+                          onChange={(e) => setNovaSenha(e.target.value)}
+                          autoComplete="new-password"
+                          className="mt-1.5"
+                          placeholder="Nova senha (deixe em branco para não alterar)"
+                        />
+                      </label>
+                      <label className="block">
+                        <span className="text-xs font-semibold uppercase tracking-wide text-gray-500">
+                          Confirmar nova senha
+                        </span>
+                        <PasswordToggleField
+                          showPassword={mostrarConfirmarSenha}
+                          onToggleShow={() => setMostrarConfirmarSenha((v) => !v)}
+                          value={confirmarSenha}
+                          onChange={(e) => setConfirmarSenha(e.target.value)}
+                          autoComplete="new-password"
+                          className="mt-1.5"
+                          placeholder="Repita a nova senha"
+                        />
+                      </label>
+                    </div>
+                  ) : (
+                    <p className="mt-1.5 text-sm text-gray-500">
+                      A alteração de senha fica disponível quando o login for com email na nuvem
+                      (Supabase).
+                    </p>
+                  )}
+                </div>
 
                 <div className="mt-6 flex flex-col sm:flex-row sm:items-center gap-3">
                   <button

@@ -4,7 +4,11 @@ import { useState } from "react";
 import type { Usuario } from "@/lib/types";
 import { getDataProvider } from "@/lib/repositories/provider";
 import { requestBoasVindasEmail } from "@/lib/emails/requestBoasVindas";
-import { signInWithEmailPassword, signUpWithEmailPassword } from "@/lib/supabase/authSession";
+import {
+  sendPasswordResetEmail,
+  signInWithEmailPassword,
+  signUpWithEmailPassword,
+} from "@/lib/supabase/authSession";
 import { trackEvent } from "@/lib/telemetry";
 import { writeUsuario } from "@/lib/usuario";
 
@@ -15,7 +19,7 @@ type Props = {
 };
 
 export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
-  const [modo, setModo] = useState<"login" | "cadastro">("login");
+  const [modo, setModo] = useState<"login" | "cadastro" | "esqueci">("login");
   const [nome, setNome] = useState("");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginSenha, setLoginSenha] = useState("");
@@ -26,6 +30,8 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
   const [erroForm, setErroForm] = useState("");
   /** Cadastro ok, mas sessão só após confirmar email no Supabase. */
   const [emailAguardandoConfirmacao, setEmailAguardandoConfirmacao] = useState<string | null>(null);
+  const [emailEsqueci, setEmailEsqueci] = useState("");
+  const [resetEnviado, setResetEnviado] = useState(false);
 
   const usarSupabase = getDataProvider() === "supabase";
 
@@ -39,6 +45,8 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
     setErroForm("");
     setCarregando(false);
     setEmailAguardandoConfirmacao(null);
+    setEmailEsqueci("");
+    setResetEnviado(false);
   };
 
   const handleLogin = (user: Usuario) => {
@@ -63,6 +71,24 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
     handleLogin(r.user);
     resetCampos();
     fechar();
+  };
+
+  const submitEsqueciSenha = async () => {
+    setErroForm("");
+    setResetEnviado(false);
+    if (!emailEsqueci.trim()) {
+      setErroForm("Informe o email da sua conta.");
+      return;
+    }
+    setCarregando(true);
+    const r = await sendPasswordResetEmail(emailEsqueci);
+    setCarregando(false);
+    if (!r.ok) {
+      setErroForm(r.message);
+      return;
+    }
+    setErroForm("");
+    setResetEnviado(true);
   };
 
   const submitCadastroSupabase = async () => {
@@ -96,16 +122,22 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
       <div className="bg-white rounded-xl p-6 w-full max-w-md shadow-2xl border border-gray-200">
 
         <h2 className="text-2xl font-bold mb-1 text-center text-gray-900">
-          {modo === "login" ? "Entrar na sua conta" : "Criar sua conta"}
+          {modo === "login"
+            ? "Entrar na sua conta"
+            : modo === "cadastro"
+              ? "Criar sua conta"
+              : "Esqueci a senha"}
         </h2>
         <p className="text-sm text-gray-600 text-center mb-5">
-          {usarSupabase
-            ? modo === "login"
-              ? "Use o mesmo email e senha cadastrados no Supabase (Auth)."
-              : "Preencha os dados. Se o projeto exigir confirmação por email, você receberá um link para ativar a conta."
-            : modo === "login"
-              ? "Acesse para continuar no Udiz."
-              : "Preencha os dados para criar seu acesso."}
+          {modo === "esqueci"
+            ? "Informe o email cadastrado. Se existir uma conta, você receberá um link para criar uma nova senha."
+            : usarSupabase
+              ? modo === "login"
+                ? "Use o mesmo email e senha cadastrados no Supabase (Auth)."
+                : "Preencha os dados. Se o projeto exigir confirmação por email, você receberá um link para ativar a conta."
+              : modo === "login"
+                ? "Acesse para continuar no Udiz."
+                : "Preencha os dados para criar seu acesso."}
         </p>
 
         {erroForm && (
@@ -164,8 +196,25 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
               value={loginSenha}
               onChange={(e) => setLoginSenha(e.target.value)}
               autoComplete="current-password"
-              className="w-full border border-gray-300 text-gray-900 placeholder:text-gray-500 p-3 rounded-md mb-4 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              className="w-full border border-gray-300 text-gray-900 placeholder:text-gray-500 p-3 rounded-md mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
+
+            {usarSupabase ? (
+              <button
+                type="button"
+                onClick={() => {
+                  setModo("esqueci");
+                  setEmailEsqueci(loginEmail.trim());
+                  setErroForm("");
+                  setResetEnviado(false);
+                }}
+                className="mb-4 block w-full text-left text-sm text-purple-700 font-medium hover:underline"
+              >
+                Esqueci a senha
+              </button>
+            ) : (
+              <div className="mb-4" />
+            )}
 
             {usarSupabase ? (
               <button
@@ -190,6 +239,48 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
                 Entrar (demonstração — dados só neste aparelho)
               </button>
             )}
+          </>
+        ) : modo === "esqueci" ? (
+          <>
+            <input
+              type="email"
+              placeholder="Email da conta"
+              value={emailEsqueci}
+              onChange={(e) => setEmailEsqueci(e.target.value)}
+              autoComplete="email"
+              className="w-full border border-gray-300 text-gray-900 placeholder:text-gray-500 p-3 rounded-md mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+            />
+            {resetEnviado ? (
+              <p className="mb-4 rounded-lg border border-emerald-200 bg-emerald-50 p-3 text-sm text-emerald-900">
+                Se o email estiver cadastrado, você receberá um link para redefinir a senha. Confira a
+                caixa de entrada e o spam.
+              </p>
+            ) : null}
+            {usarSupabase ? (
+              <button
+                type="button"
+                disabled={carregando}
+                onClick={() => void submitEsqueciSenha()}
+                className="w-full bg-purple-600 text-white font-semibold py-2.5 rounded-md mb-2 hover:bg-purple-700 transition-colors disabled:opacity-60"
+              >
+                {carregando ? "Enviando..." : "Enviar link por email"}
+              </button>
+            ) : (
+              <p className="text-sm text-gray-600 mb-4">
+                Recuperação por email não está disponível no modo demonstração local.
+              </p>
+            )}
+            <button
+              type="button"
+              onClick={() => {
+                setModo("login");
+                setErroForm("");
+                setResetEnviado(false);
+              }}
+              className="w-full text-sm text-purple-700 font-semibold hover:underline"
+            >
+              Voltar para entrar
+            </button>
           </>
         ) : (
           <>
@@ -275,7 +366,7 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
               Criar conta
             </button>
           </p>
-        ) : (
+        ) : modo === "esqueci" ? null : (
           <p className="text-sm text-center mt-4 text-gray-600">
             Já tem conta?{" "}
             <button
@@ -304,7 +395,7 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
           }}
           className="w-full text-gray-600 text-sm mt-2 hover:text-gray-800"
         >
-          Cancelar
+          {modo === "esqueci" ? "Fechar" : "Cancelar"}
         </button>
       </div>
     </div>

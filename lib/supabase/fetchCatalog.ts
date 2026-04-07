@@ -32,6 +32,18 @@ export async function fetchProdutoByIdFromSupabase(id: string): Promise<Produto 
   return mapProduto(data as ProdutoRow);
 }
 
+/** Lista produtos de uma loja (leitura pública; mesmas regras do catálogo geral). */
+export async function fetchProdutosDaLojaFromSupabase(lojaId: string): Promise<Produto[]> {
+  const supabase = createSupabaseBrowserClient();
+  const { data, error } = await supabase
+    .from("produtos")
+    .select("*")
+    .eq("loja_id", lojaId)
+    .order("nome");
+  if (error) throw error;
+  return (data as ProdutoRow[]).map(mapProduto);
+}
+
 export async function fetchCatalogFromSupabase(): Promise<{ lojas: Loja[]; produtos: Produto[] }> {
   const [lojas, produtos] = await Promise.all([
     fetchLojasFromSupabase(),

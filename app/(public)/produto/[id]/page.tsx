@@ -258,7 +258,26 @@ export default function ProdutoPage() {
                   ) : null}
 
                   <p className="text-gray-500 mt-1">
-                    Vendido por: {loja?.nome ?? "Loja"}
+                    Vendido por:{" "}
+                    {loja ? (
+                      <Link
+                        href={`/loja/${encodeURIComponent(loja.id)}`}
+                        className="font-medium text-purple-600 hover:text-purple-800 hover:underline"
+                        onClick={() => {
+                          if (usuario && produto) {
+                            trackEvent("produto_ver_loja_click", {
+                              userId: usuario.id,
+                              produtoId: produto.id,
+                              lojaId: loja.id,
+                            });
+                          }
+                        }}
+                      >
+                        {loja.nome}
+                      </Link>
+                    ) : (
+                      "Loja"
+                    )}
                   </p>
 
                   {localizacaoPublica ? (

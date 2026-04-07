@@ -87,3 +87,72 @@ export async function signOutSupabase(): Promise<void> {
   const supabase = createSupabaseBrowserClient();
   await supabase.auth.signOut();
 }
+
+/** Email do usuário na sessão Auth (Supabase). */
+export async function getSupabaseSessionUserEmail(): Promise<string | null> {
+  if (getDataProvider() !== "supabase") return null;
+  const supabase = createSupabaseBrowserClient();
+  const {
+    data: { session },
+  } = await supabase.auth.getSession();
+  return session?.user?.email?.trim() ?? null;
+}
+
+/** Altera a senha do usuário logado (sessão ativa), sem revalidar a atual. */
+export async function updateSupabasePassword(
+  newPassword: string
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (getDataProvider() !== "supabase") {
+    return { ok: false, message: "Alteração de senha só está disponível com login na nuvem." };
+  }
+  const supabase = createSupabaseBrowserClient();
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) return { ok: false, message: authErrorMessage(error.message) };
+  return { ok: true };
+}
+
+/**
+ * Confirma a senha atual com novo login e aplica a nova senha.
+ * (A senha nunca é armazenada em texto no app; o usuário digita a atual para provar que é ele.)
+ */
+export async function reauthenticateAndUpdatePassword(
+  email: string,
+  currentPassword: string,
+  newPassword: string
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (getDataProvider() !== "supabase") {
+    return { ok: false, message: "Alteração de senha só está disponível com login na nuvem." };
+  }
+  const supabase = createSupabaseBrowserClient();
+  const { error: signErr } = await supabase.auth.signInWithPassword({
+    email: email.trim(),
+    password: currentPassword,
+  });
+  if (signErr) {
+    const m = signErr.message.toLowerCase();
+    if (m.includes("invalid") || m.includes("credentials")) {
+      return { ok: false, message: "Senha atual incorreta." };
+    }
+    return { ok: false, message: authErrorMessage(signErr.message) };
+  }
+  const { error } = await supabase.auth.updateUser({ password: newPassword });
+  if (error) return { ok: false, message: authErrorMessage(error.message) };
+  return { ok: true };
+}
+
+/** Envia email do Supabase com link para redefinir senha (configure Redirect URLs no painel). */
+export async function sendPasswordResetEmail(
+  email: string
+): Promise<{ ok: true } | { ok: false; message: string }> {
+  if (getDataProvider() !== "supabase") {
+    return { ok: false, message: "Recuperação de senha só está disponível com login na nuvem." };
+  }
+  const supabase = createSupabaseBrowserClient();
+  const redirectTo =
+    typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined;
+  const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
+    redirectTo,
+  });
+  if (error) return { ok: false, message: authErrorMessage(error.message) };
+  return { ok: true };
+}

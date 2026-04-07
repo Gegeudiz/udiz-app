@@ -24,4 +24,9 @@ export const BANNERS_PROMO_SLIDES: BannerPromoSlide[] = [
     alt: "Veja onde tem, compare preços e fale direto com o lojista no Udiz",
     href: "https://www.instagram.com/udizoficial/",
   },
+  {
+    src: "/banners/promo-4.png",
+    alt: "Banner promocional Udiz 4",
+    href: "https://www.instagram.com/udizoficial/",
+  },
 ];
