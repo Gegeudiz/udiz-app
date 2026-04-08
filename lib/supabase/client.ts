@@ -24,9 +24,15 @@ export function createSupabaseBrowserClient(): SupabaseClient {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        /** Necessário para links de email (recuperação de senha, etc.) com ?code= ou #access_token= */
+        /** Necessário para processar links de email no callback. */
         detectSessionInUrl: true,
-        flowType: "pkce",
+        /**
+         * IMPORTANTE:
+         * Não forçar PKCE no cliente browser para recuperação de senha.
+         * Com PKCE, o link pode exigir "code_verifier" salvo no mesmo device e falhar
+         * quando o usuário abre no celular/outro navegador ("code verifier not found in storage").
+         */
+        flowType: "implicit",
       },
     });
   }

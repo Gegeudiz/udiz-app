@@ -33,9 +33,47 @@ export default function AuthCallbackPage() {
         const supabase = createSupabaseBrowserClient();
         const url = new URL(window.location.href);
         const code = url.searchParams.get("code");
+        const tokenHash = url.searchParams.get("token_hash");
+        const type = url.searchParams.get("type");
+        const queryAccessToken = url.searchParams.get("access_token");
+        const queryRefreshToken = url.searchParams.get("refresh_token");
 
         if (code) {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
+          if (cancelado) return;
+          if (error) {
+            setErroSessao(error.message);
+            setEstado("erro");
+            return;
+          }
+          window.history.replaceState({}, "", url.pathname);
+          setEstado("pronto");
+          return;
+        }
+
+        // Fallback importante para mobile/iOS: alguns fluxos chegam como ?token_hash=...&type=recovery
+        if (tokenHash && type === "recovery") {
+          const { error } = await supabase.auth.verifyOtp({
+            type: "recovery",
+            token_hash: tokenHash,
+          });
+          if (cancelado) return;
+          if (error) {
+            setErroSessao(error.message);
+            setEstado("erro");
+            return;
+          }
+          window.history.replaceState({}, "", url.pathname);
+          setEstado("pronto");
+          return;
+        }
+
+        // Alguns webviews convertem hash para query string.
+        if (queryAccessToken && queryRefreshToken) {
+          const { error } = await supabase.auth.setSession({
+            access_token: queryAccessToken,
+            refresh_token: queryRefreshToken,
+          });
           if (cancelado) return;
           if (error) {
             setErroSessao(error.message);
