@@ -39,7 +39,7 @@ const CATEGORIAS = [
   "Decoração",
   "Festas",
   "Pet",
-  "Ferramentas",
+  "Ferragista",
   "Eletrônicos",
   "Outros",
 ];

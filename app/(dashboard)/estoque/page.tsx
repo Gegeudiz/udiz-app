@@ -7,33 +7,9 @@ import type { Loja, Produto } from "@/lib/types";
 import { getDataProvider } from "@/lib/repositories/provider";
 import { lojaRepo, produtoRepo } from "@/lib/repositories/localDb";
 import { remoteListMeusProdutos, remoteListMinhasLojas } from "@/lib/supabase/estoqueRemote";
-import { readEvents } from "@/lib/telemetry";
 import { rotuloLocalPublicoLoja } from "@/lib/enderecoLoja";
 import { readUsuario } from "@/lib/usuario";
-
-/** Sugestões fixas para inspirar o lojista — o que costuma ter boa procura no varejo. */
-const IDEIAS_PRODUTOS_EM_ALTA = [
-  {
-    nome: "Kit escolar e papelaria",
-    categoria: "Escola",
-    dica: "Cadernos, estojos e kits voltam forte no começo do ano e em rematrículas.",
-  },
-  {
-    nome: "Skincare e autocuidado",
-    categoria: "Cosméticos",
-    dica: "Hidratantes, protetor solar e itens de rotina têm busca constante.",
-  },
-  {
-    nome: "Decoração e festas",
-    categoria: "Festas",
-    dica: "Itens para aniversário e datas comemorativas costumam puxar vendas sazonais.",
-  },
-  {
-    nome: "Pet shop (ração e acessórios)",
-    categoria: "Pet",
-    dica: "Donos de pet buscam praticidade; combos e reposição frequente ajudam.",
-  },
-] as const;
+import PoliticaUdizAccordion from "@/components/PoliticaUdizAccordion";
 
 export default function EstoqueGerenciamentoPage() {
   const router = useRouter();
@@ -73,27 +49,6 @@ export default function EstoqueGerenciamentoPage() {
     })();
   }, []);
 
-  const dadosBusca = useMemo(() => {
-    const eventos = readEvents();
-    const contagemPorProduto = new Map<string, number>();
-
-    eventos.forEach((ev) => {
-      if (ev.event !== "produto_whatsapp_click" && ev.event !== "produto_salvo_toggle") return;
-      const raw = ev.payload?.produtoId;
-      const produtoId = raw != null && raw !== "" ? String(raw) : "";
-      if (!produtoId) return;
-      if (ev.event === "produto_salvo_toggle" && ev.payload?.saved !== true) return;
-      contagemPorProduto.set(produtoId, (contagemPorProduto.get(produtoId) ?? 0) + 1);
-    });
-
-    const top = produtos
-      .map((p) => ({ produto: p, interesse: contagemPorProduto.get(p.id) ?? 0 }))
-      .sort((a, b) => b.interesse - a.interesse)
-      .slice(0, 4);
-
-    return top;
-  }, [produtos]);
-
   const totalProdutos = produtos.length;
   const totalLojas = lojas.length;
   const ticketMedio =
@@ -103,9 +58,7 @@ export default function EstoqueGerenciamentoPage() {
   const incentivo =
     totalProdutos === 0
       ? "Comece adicionando seus primeiros produtos para aparecer na busca do Udiz."
-      : dadosBusca.length > 0 && dadosBusca[0].interesse > 0
-        ? `Seu destaque atual é "${dadosBusca[0].produto.nome}". Reforce foto e descrição para converter mais vendas.`
-        : "Seus produtos já estão publicados. Incentive cliques com títulos mais claros e fotos de boa qualidade.";
+      : "Seus produtos já estão publicados. Incentive cliques com títulos claros, preço atualizado e fotos de boa qualidade.";
 
   return (
     <div className="max-w-6xl mx-auto py-6">
@@ -162,27 +115,9 @@ export default function EstoqueGerenciamentoPage() {
       </section>
 
       <section className="grid grid-cols-1 lg:grid-cols-3 gap-4 mb-8">
-        <article className="lg:col-span-2 rounded-xl border border-gray-200 bg-white p-5 shadow-sm">
-          <h2 className="text-lg font-bold text-gray-900">O que as pessoas mais procuram ultimamente</h2>
-          <p className="text-sm text-gray-500 mt-1 mb-4">
-            Ideias de tendência para você se inspirar e cadastrar no seu estoque — quando esses itens
-            aparecem na busca do Udiz, sua loja pode ser encontrada por quem já está procurando.
-          </p>
-          <ul className="space-y-3">
-            {IDEIAS_PRODUTOS_EM_ALTA.map((item, idx) => (
-              <li
-                key={item.nome}
-                className="rounded-lg border border-purple-100 bg-purple-50/40 p-3"
-              >
-                <p className="text-sm font-semibold text-gray-900">
-                  #{idx + 1} {item.nome}
-                </p>
-                <p className="text-xs text-purple-700 font-medium mt-0.5">{item.categoria}</p>
-                <p className="text-xs text-gray-600 mt-2 leading-relaxed">{item.dica}</p>
-              </li>
-            ))}
-          </ul>
-        </article>
+        <div className="lg:col-span-2">
+          <PoliticaUdizAccordion />
+        </div>
 
         <article className="rounded-xl border border-gray-200 bg-gradient-to-br from-indigo-50 to-cyan-50 p-5 shadow-sm">
           <h3 className="text-base font-bold text-gray-900">Nota:</h3>

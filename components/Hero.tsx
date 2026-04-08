@@ -23,7 +23,7 @@ export default function Hero() {
     { nome: "Decoração", emoji: "🖼️" },
     { nome: "Festas", emoji: "🎉" },
     { nome: "Pet", emoji: "🐶" },
-    { nome: "Ferramentas", emoji: "🛠️" },
+    { nome: "Ferragista", emoji: "🛠️" },
     { nome: "Eletrônicos", emoji: "📱" },
     { nome: "Outros", emoji: "📦" },
   ];

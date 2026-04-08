@@ -36,10 +36,23 @@ const CATEGORIAS = [
   "Decoração",
   "Festas",
   "Pet",
-  "Ferramentas",
+  "Ferragista",
   "Eletrônicos",
   "Outros",
 ];
+
+function normalizeCategoria(valor: string): string {
+  return valor
+    .trim()
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[\u0300-\u036f]/g, "");
+}
+
+function correspondeCategoriaFerragista(categoriaProduto: string): boolean {
+  const cat = normalizeCategoria(categoriaProduto);
+  return cat.includes("ferragista") || cat.includes("ferrament") || cat.includes("construc");
+}
 
 function BuscaContent() {
   const router = useRouter();
@@ -83,7 +96,11 @@ function BuscaContent() {
     return produtos.filter((p) => {
       const loja = findLojaById(lojas, p.loja_id);
       const matchCidade = !cidade || lojaCorrespondeCidadeFiltrada(loja, cidade);
-      const matchCat = !categoria || p.categoria === categoria;
+      const matchCat = !categoria
+        ? true
+        : categoria === "Ferragista"
+          ? correspondeCategoriaFerragista(p.categoria)
+          : p.categoria === categoria;
       const matchNome =
         !t ||
         p.nome.toLowerCase().includes(t) ||
@@ -102,6 +119,8 @@ function BuscaContent() {
     router.push(qs ? `/busca?${qs}` : "/busca");
   };
 
+  const cabecalhoFerragista = categoria === "Ferragista";
+
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-gray-100">
       <Header
@@ -113,10 +132,12 @@ function BuscaContent() {
       <div className="w-full min-w-0 max-w-full box-border pt-36 pb-24 md:pb-10 px-4 sm:px-5 md:px-8 md:pt-32 lg:pt-36">
         <div className="max-w-6xl mx-auto w-full min-w-0">
           <h1 className="text-2xl font-bold text-gray-900 mb-2 scroll-mt-32">
-            Buscar produtos
+            {cabecalhoFerragista ? "Ferragista/ Ferramentas/ construção no Geral" : "Buscar produtos"}
           </h1>
           <p className="text-sm text-gray-600 mb-6">
-            Veja onde encontrar perto de você (dados das lojas cadastradas no Udiz Estoque).
+            {cabecalhoFerragista
+              ? "Procure o produto que você precisa."
+              : "Veja onde encontrar perto de você (dados das lojas cadastradas no Udiz Estoque)."}
           </p>
 
           <div className="bg-white rounded-xl shadow p-4 mb-6 flex flex-col md:flex-row md:flex-wrap gap-3 min-w-0 w-full max-w-full">

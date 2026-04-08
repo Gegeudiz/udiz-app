@@ -7,6 +7,7 @@ import Hero from "../../components/Hero";
 import Destaques from "../../components/Destaques";
 import BottomNav from "../../components/BottomNav";
 import BannerLoja from "../../components/BannerLoja";
+import PoliticaUdizAccordion from "../../components/PoliticaUdizAccordion";
 import Footer from "../../components/Footer";
 import ModalLogin from "../../components/ModalLogin";
 import type { Usuario } from "@/lib/types";
@@ -68,6 +69,11 @@ export default function Home() {
         <Destaques usuario={usuario} onPrecisaLogin={() => setAbrirLogin(true)} />
         <BottomNav />
         <BannerLoja usuario={usuario} onPrecisaLogin={() => setAbrirLogin(true)} />
+        <section className="px-4 pb-10">
+          <div className="mx-auto w-full max-w-5xl">
+            <PoliticaUdizAccordion />
+          </div>
+        </section>
         <Footer />
       </main>
 

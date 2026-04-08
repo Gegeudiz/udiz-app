@@ -9,7 +9,7 @@ export default function Categorias() {
     "Decoração",
     "Festas",
     "Pet",
-    "Ferramentas",
+    "Ferragista",
     "Eletrônicos",
     "Outros",
   ];
