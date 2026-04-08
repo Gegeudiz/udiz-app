@@ -20,7 +20,15 @@ export function createSupabaseBrowserClient(): SupabaseClient {
   }
 
   if (!browserClient) {
-    browserClient = createClient(url, anon);
+    browserClient = createClient(url, anon, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        /** Necessário para links de email (recuperação de senha, etc.) com ?code= ou #access_token= */
+        detectSessionInUrl: true,
+        flowType: "pkce",
+      },
+    });
   }
   return browserClient;
 }

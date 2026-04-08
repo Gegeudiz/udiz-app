@@ -1,0 +1,66 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Redefinir senha — Udiz</title>
+</head>
+<body style="margin:0;font-family:system-ui,-apple-system,'Segoe UI',Roboto,sans-serif;background:#f3f4f6;color:#111827;">
+  <!--
+    Supabase → Authentication → Email templates → "Reset password"
+    - Cole este HTML no corpo do template.
+    - Assunto sugerido: Redefinir sua senha no Udiz
+    - {{ .SiteURL }} = Site URL configurada no Supabase (use a URL pública do app, ex. https://xxx.vercel.app)
+    - Coloque logo.png na pasta public/ do Next.js para o logo aparecer.
+  -->
+  <table role="presentation" width="100%" cellspacing="0" cellpadding="0" style="padding:24px 16px;">
+    <tr>
+      <td align="center">
+        <table role="presentation" width="100%" style="max-width:520px;background:#ffffff;border-radius:16px;overflow:hidden;box-shadow:0 4px 24px rgba(109,40,217,0.12);">
+          <tr>
+            <td style="padding:28px 24px 20px;background:linear-gradient(135deg,#5b21b6 0%,#7c3aed 45%,#ea580c 100%);color:#fff;text-align:center;">
+              <img src="{{ .SiteURL }}/logo.png" alt="Udiz" width="120" height="auto" style="display:block;margin:0 auto 12px;max-width:140px;height:auto;" />
+              <p style="margin:0;font-size:13px;font-weight:600;letter-spacing:0.08em;opacity:0.95;">UDIZ</p>
+              <h1 style="margin:10px 0 0;font-size:22px;font-weight:800;line-height:1.25;">
+                Redefinir sua senha
+              </h1>
+            </td>
+          </tr>
+          <tr>
+            <td style="padding:28px 24px 32px;">
+              <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#374151;">
+                Olá,
+              </p>
+              <p style="margin:0 0 16px;font-size:16px;line-height:1.6;color:#374151;">
+                Recebemos um pedido para criar uma <strong>nova senha</strong> da sua conta Udiz
+                vinculada a <strong>{{ .Email }}</strong>.
+              </p>
+              <p style="margin:0 0 28px;font-size:16px;line-height:1.6;color:#374151;">
+                Toque no botão abaixo. Por segurança, o link expira em poucos minutos.
+              </p>
+              <p style="margin:0 0 28px;text-align:center;">
+                <a href="{{ .ConfirmationURL }}"
+                   style="display:inline-block;padding:16px 32px;background:#7c3aed;color:#ffffff !important;text-decoration:none;font-weight:700;border-radius:12px;font-size:16px;">
+                  Criar nova senha
+                </a>
+              </p>
+              <p style="margin:0;font-size:14px;line-height:1.55;color:#6b7280;">
+                Se você <strong>não</strong> pediu isso, pode ignorar este e-mail — sua senha continua a mesma.
+              </p>
+              <hr style="margin:24px 0;border:none;border-top:1px solid #e5e7eb;" />
+              <p style="margin:0;font-size:12px;line-height:1.5;color:#9ca3af;word-break:break-all;">
+                Se o botão não abrir, copie e cole este endereço no navegador:<br />
+                {{ .ConfirmationURL }}
+              </p>
+            </td>
+          </tr>
+        </table>
+        <p style="margin:20px 0 0;font-size:12px;color:#9ca3af;text-align:center;max-width:520px;">
+          Udiz — encontre produtos perto de você.<br />
+          Este e-mail foi enviado automaticamente; não responda a esta mensagem.
+        </p>
+      </td>
+    </tr>
+  </table>
+</body>
+</html>

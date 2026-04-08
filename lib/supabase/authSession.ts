@@ -1,3 +1,4 @@
+import { getAuthCallbackRedirectUrl } from "@/lib/appUrl";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 import { getDataProvider } from "@/lib/repositories/provider";
 import { userRepo } from "@/lib/repositories/localDb";
@@ -140,7 +141,19 @@ export async function reauthenticateAndUpdatePassword(
   return { ok: true };
 }
 
-/** Envia email do Supabase com link para redefinir senha (configure Redirect URLs no painel). */
+/**
+ * Envia email do Supabase com link para redefinir senha.
+ *
+ * Redirect: usa `NEXT_PUBLIC_APP_URL` quando definido (produção), para o link NÃO ir com localhost.
+ * Vercel: defina NEXT_PUBLIC_APP_URL=https://seu-dominio.vercel.app (e o mesmo em Site URL no Supabase).
+ *
+ * Painel Supabase → Authentication → URL Configuration → Redirect URLs:
+ *   https://SEU_DOMINIO/auth/callback
+ *   http://localhost:3000/auth/callback (opcional, só dev)
+ *
+ * Email com cara Udiz + PT-BR: Email Templates → “Reset password” →
+ * `supabase/email-template-recuperacao-senha.html`
+ */
 export async function sendPasswordResetEmail(
   email: string
 ): Promise<{ ok: true } | { ok: false; message: string }> {
@@ -148,8 +161,7 @@ export async function sendPasswordResetEmail(
     return { ok: false, message: "Recuperação de senha só está disponível com login na nuvem." };
   }
   const supabase = createSupabaseBrowserClient();
-  const redirectTo =
-    typeof window !== "undefined" ? `${window.location.origin}/auth/callback` : undefined;
+  const redirectTo = getAuthCallbackRedirectUrl() || undefined;
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {
     redirectTo,
   });

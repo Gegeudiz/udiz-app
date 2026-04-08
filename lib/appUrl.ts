@@ -29,3 +29,19 @@ export function buildProdutoPageAbsoluteUrl(baseUrl: string, produtoId: string):
   const b = baseUrl.replace(/\/+$/, "");
   return `${b}/produto/${encodeURIComponent(produtoId)}`;
 }
+
+/**
+ * Destino do link "Esqueci a senha" (deve ser a URL **pública** do site, nunca só localhost em produção).
+ * 1) NEXT_PUBLIC_APP_URL no .env (ex.: https://udiz-app-one.vercel.app) — obrigatório na Vercel
+ * 2) senão, origem atual do navegador (ok para dev local)
+ */
+export function getAuthCallbackRedirectUrl(): string {
+  const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  const base = explicit
+    ? stripTrailingSlash(explicit)
+    : typeof window !== "undefined"
+      ? stripTrailingSlash(window.location.origin)
+      : "";
+  if (!base) return "";
+  return `${base}/auth/callback`;
+}

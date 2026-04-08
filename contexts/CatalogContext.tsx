@@ -25,6 +25,9 @@ type CatalogValue = {
 
 const CatalogContext = createContext<CatalogValue | null>(null);
 
+/** Evita que o catálogo fique “Carregando…” para sempre se o Supabase não responder (rede/firewall). */
+const CATALOG_FETCH_TIMEOUT_MS = 25_000;
+
 export function CatalogProvider({ children }: { children: ReactNode }) {
   const [lojas, setLojas] = useState<Loja[]>([]);
   const [produtos, setProdutos] = useState<Produto[]>([]);
@@ -36,7 +39,16 @@ export function CatalogProvider({ children }: { children: ReactNode }) {
     if (fonte === "supabase") {
       setLoading(true);
       setError(null);
-      fetchCatalogFromSupabase()
+      const timeout = new Promise<never>((_, reject) => {
+        window.setTimeout(() => {
+          reject(
+            new Error(
+              "Tempo esgotado ao conectar ao Supabase. Verifique internet, firewall, VPN e se NEXT_PUBLIC_SUPABASE_URL está correta no .env.local. Tente também http://127.0.0.1:3000 no navegador.",
+            ),
+          );
+        }, CATALOG_FETCH_TIMEOUT_MS);
+      });
+      Promise.race([fetchCatalogFromSupabase(), timeout])
         .then(({ lojas: l, produtos: p }) => {
           setLojas(l);
           setProdutos(p);
