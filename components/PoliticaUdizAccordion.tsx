@@ -20,7 +20,7 @@ const SECOES_POLITICA: SecaoPolitica[] = [
   {
     titulo: "2. Boas Práticas (Como se destacar e vender mais)",
     conteudo: [
-      "Produtos bem cadastrados: use nomes claros (ex: Furadeira Bosch 500W) e evite nomes genéricos.",
+      "Produtos bem cadastrados: use nomes claros (ex: Furadeira Bosch 500W) e evite nomes genéricos (ex: Furadeira boa).",
       "Preço visível: produtos com preço recebem mais cliques e mais contatos; clientes confiam mais quando já sabem o valor.",
       "Fotos de boa qualidade: prefira fotos próprias da loja e, se usar imagem da internet, que seja fiel ao produto.",
       "Atualização constante: mantenha preços atualizados e remova produtos indisponíveis.",
@@ -29,9 +29,9 @@ const SECOES_POLITICA: SecaoPolitica[] = [
   {
     titulo: "3. Regras e Proibições (O que não pode no Udiz)",
     conteudo: [
-      "Não é permitido anunciar produtos ilegais (drogas, armas, explosivos, medicamentos irregulares e itens proibidos pela legislação).",
-      "O Udiz não atua no segmento alimentício: marmitas, lanches, produtos de mercado, doces e bebidas não são permitidos.",
-      "Não é permitido anunciar animais (domésticos ou silvestres) nem vestuário (roupas, calçados e acessórios de moda).",
+      "Não é permitido anunciar produtos ilegais (drogas, armas, explosivos, medicamentos irregulares e itens proibidos pela legislação brasileira).",
+      "O Udiz não atua no segmento alimentício e não faz concorrência com plataformas de delivery: marmitas, lanches, produtos de mercado, doces e bebidas não são permitidos.",
+      "Não é permitido anunciar animais (domésticos ou silvestres) nem vestuário (roupas, calçados e acessórios de moda). O Udiz não faz concorrência com plataformas de compra e venda de produtos usados.",
       "Penalidades: remoção dos produtos, suspensão da conta e exclusão permanente da plataforma.",
     ],
   },
@@ -39,10 +39,10 @@ const SECOES_POLITICA: SecaoPolitica[] = [
     titulo: "4. Principais Dúvidas",
     conteudo: [
       "Preciso colocar o preço? Sim. Os produtos estão disponíveis para comparação e o preço aumenta conversão.",
-      "O Udiz vende por mim? Não. O Udiz conecta o cliente até sua loja; a venda acontece diretamente com você.",
+      "O Udiz vende por mim? Não. O Udiz conecta o cliente até sua loja; a venda acontece diretamente com o Lojista.",
       "Preciso atualizar os produtos? Sim. Produtos desatualizados ou com preço incorreto reduzem confiança e vendas.",
-      "O Udiz se responsabiliza pela venda? Não. O Udiz é um intermediador digital entre cliente e lojista.",
-      "Posso cadastrar qualquer produto? Não. É necessário seguir as regras da plataforma e a política interna do Udiz.",
+      "O Udiz se responsabiliza pela venda? Não. O Udiz é um intermediador digital entre cliente e lojista. Nós levamos o Cliente até a Loja, conectando pessoas procurando um produto com lojas que vendem este produto.",
+      "Posso cadastrar qualquer produto? Não. É necessário seguir as regras da plataforma e a política interna do Udiz. Assim que a sua loja tiver o cadastro autorizado, você poderá catalogar quantos produtos quiser desde que siga as Políticas Internas do Udiz.",
     ],
   },
 ];
@@ -55,7 +55,7 @@ export default function PoliticaUdizAccordion() {
       <h2 className="text-lg font-bold text-white">Política Udiz</h2>
       <p className="mt-1 mb-4 text-sm leading-relaxed text-violet-100">
         Usuários e lojistas que seguem essas práticas contribuem para uma boa performance e
-        desempenho da plataforma Udiz, aprimorando a experiência de todos os usuários.
+        desempenho da plataforma Udiz, aprimorando a experiência para todos.
       </p>
 
       <div className="space-y-3">

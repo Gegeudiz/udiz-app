@@ -6,7 +6,7 @@ import {
   type BannerPromoSlide,
 } from "@/lib/bannersPromo";
 
-const INTERVAL_MS = 5500;
+const INTERVAL_MS = 10_000;
 
 export default function BannerPromocional() {
   const slides = BANNERS_PROMO_SLIDES;
