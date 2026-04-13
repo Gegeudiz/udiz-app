@@ -26,7 +26,7 @@ export function onlyDigits(value: string): string {
  * - Outros 11 dígitos → mantém (ex.: +34… digitado cheio) para não quebrar exterior.
  */
 export function normalizeWhatsAppNumberForWaMe(raw: string): string {
-  let n = onlyDigits(raw).replace(/^0+/, "");
+  const n = onlyDigits(raw).replace(/^0+/, "");
   if (!n) return "";
   if (n.startsWith("55") && n.length >= 12) return n;
   if (n.length === 10) return `55${n}`;

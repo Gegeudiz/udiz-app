@@ -14,6 +14,12 @@ export default function Footer() {
           <p className="text-sm text-gray-400">
             Conectando você ao comércio local.
           </p>
+          <p className="text-sm text-gray-400 mt-2">
+            E-mail:{" "}
+            <a className="hover:text-white" href="mailto:contato@udiz.com.br">
+              contato@udiz.com.br
+            </a>
+          </p>
         </div>
 
         {/* LINKS */}
@@ -53,7 +59,7 @@ export default function Footer() {
 
       {/* LINHA FINAL */}
       <div className="border-t border-gray-700 text-center py-4 text-sm text-gray-400">
-        © 2025 Udiz. Todos os direitos reservados.
+        © 2026 Udiz. Todos os direitos reservados.
       </div>
 
     </footer>

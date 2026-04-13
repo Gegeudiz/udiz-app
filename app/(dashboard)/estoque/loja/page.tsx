@@ -68,7 +68,7 @@ export default function CriarLoja() {
       imagem,
     };
 
-    let criado =
+    const criado =
       getDataProvider() === "supabase"
         ? await remoteCreateLoja({
             nome: payloadBase.nome,
