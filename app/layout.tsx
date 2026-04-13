@@ -19,6 +19,11 @@ export const metadata: Metadata = {
   },
   description:
     "Encontre produtos perto de você e cadastre sua loja no Udiz Estoque.",
+  icons: {
+    icon: "/favicon.png",
+    shortcut: "/favicon.png",
+    apple: "/favicon.png",
+  },
 };
 
 export default function RootLayout({
