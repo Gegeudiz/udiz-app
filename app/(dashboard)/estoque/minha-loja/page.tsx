@@ -29,20 +29,7 @@ import {
 import { mensagemErroApiParaUsuario } from "@/lib/mensagemErroApi";
 import { trackEvent } from "@/lib/telemetry";
 import { readUsuario } from "@/lib/usuario";
-
-const CATEGORIAS = [
-  "Brinquedos",
-  "Cosméticos",
-  "Escritório",
-  "Escola",
-  "Casa/Jardim",
-  "Decoração",
-  "Festas",
-  "Pet",
-  "Ferragista",
-  "Eletrônicos",
-  "Outros",
-];
+import { CATEGORIAS_UDIZ, migrarRotuloCategoriaArmazenada } from "@/lib/categoriasUdiz";
 
 function MinhaLojaContent() {
   const params = useSearchParams();
@@ -262,7 +249,7 @@ function MinhaLojaContent() {
     setProdutoEditandoId(p.id);
     setNome(p.nome);
     setPreco(String(p.preco));
-    setCategoria(p.categoria);
+    setCategoria(migrarRotuloCategoriaArmazenada(p.categoria));
     setDescricao(p.descricao);
     setProdutoImagemFile(null);
     setImagemPreview(p.imagem);
@@ -704,7 +691,7 @@ function MinhaLojaContent() {
               className="w-full border border-gray-300 rounded-lg p-2 mb-2 text-gray-900"
             >
               <option value="">Selecione a categoria</option>
-              {CATEGORIAS.map((c) => (
+              {CATEGORIAS_UDIZ.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>

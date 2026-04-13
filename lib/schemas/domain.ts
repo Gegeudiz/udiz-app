@@ -57,7 +57,7 @@ export const produtoSchema = z.object({
     .string()
     .trim()
     .min(2, "Selecione ou informe uma categoria (ao menos 2 caracteres).")
-    .max(40, "A categoria pode ter no máximo 40 caracteres."),
+    .max(48, "A categoria pode ter no máximo 48 caracteres."),
   loja_id: z.string().min(1, "Loja inválida."),
   descricao: z.string().trim().max(400, "A descrição pode ter no máximo 400 caracteres."),
   imagem: z.string().nullable(),

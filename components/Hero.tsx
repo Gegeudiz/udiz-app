@@ -3,30 +3,45 @@
 import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { CIDADES_DISPONIVEIS, readCidadeSelecionada, writeCidadeSelecionada } from "@/lib/cidades";
+import { CATEGORIAS_UDIZ } from "@/lib/categoriasUdiz";
 import BannerPromocional from "./BannerPromocional";
 
 export default function Hero() {
   const router = useRouter();
-  const scrollRef = useRef<HTMLDivElement>(null);
   const [buscaProduto, setBuscaProduto] = useState("");
   const [cidade, setCidade] = useState("");
+  const [menuCategoriasAberto, setMenuCategoriasAberto] = useState(false);
+  const categoriasRef = useRef<HTMLDivElement>(null);
+
   useEffect(() => {
     setCidade(readCidadeSelecionada());
   }, []);
 
-  const categorias = [
-    { nome: "Brinquedos", emoji: "🧸" },
-    { nome: "Cosméticos", emoji: "💄" },
-    { nome: "Escritório", emoji: "📎" },
-    { nome: "Escola", emoji: "📚" },
-    { nome: "Casa/Jardim", emoji: "🏡" },
-    { nome: "Decoração", emoji: "🖼️" },
-    { nome: "Festas", emoji: "🎉" },
-    { nome: "Pet", emoji: "🐶" },
-    { nome: "Ferragista", emoji: "🛠️" },
-    { nome: "Eletrônicos", emoji: "📱" },
-    { nome: "Outros", emoji: "📦" },
-  ];
+  useEffect(() => {
+    if (!menuCategoriasAberto) return;
+    const fechar = (e: MouseEvent) => {
+      if (categoriasRef.current?.contains(e.target as Node)) return;
+      setMenuCategoriasAberto(false);
+    };
+    const onKey = (e: KeyboardEvent) => {
+      if (e.key === "Escape") setMenuCategoriasAberto(false);
+    };
+    document.addEventListener("mousedown", fechar);
+    document.addEventListener("keydown", onKey);
+    return () => {
+      document.removeEventListener("mousedown", fechar);
+      document.removeEventListener("keydown", onKey);
+    };
+  }, [menuCategoriasAberto]);
+
+  const irParaCategoria = (nome: string) => {
+    setMenuCategoriasAberto(false);
+    const params = new URLSearchParams();
+    params.set("categoria", nome);
+    if (cidade) params.set("cidade", cidade);
+    writeCidadeSelecionada(cidade);
+    router.push(`/busca?${params.toString()}`);
+  };
 
   return (
     <div className="bg-gradient-to-r from-purple-700 to-purple-900 text-white pb-12">
@@ -87,46 +102,47 @@ export default function Hero() {
         </div>
       </div>
 
-      {/* CATEGORIAS */}
-      <div className="max-w-6xl mx-auto mt-10 px-4 md:px-0">
-
-      <div
-  ref={scrollRef}
-  className="
-    flex gap-6
-    overflow-x-auto md:overflow-visible
-    no-scrollbar
-    flex-nowrap md:flex-wrap
-    justify-start md:justify-center
-    md:px-0
-  "
->
-          {categorias.map((cat) => (
-            <button
-              type="button"
-              key={cat.nome}
-              onClick={() => {
-                const params = new URLSearchParams();
-                params.set("categoria", cat.nome);
-                if (cidade) params.set("cidade", cidade);
-                writeCidadeSelecionada(cidade);
-                router.push(`/busca?${params.toString()}`);
-              }}
-              className="flex flex-col items-center min-w-[80px] cursor-pointer bg-transparent border-0 p-0"
+      {/* CATEGORIAS — menu suspenso */}
+      <div className="max-w-6xl mx-auto mt-10 px-4 md:px-0 flex justify-center">
+        <div ref={categoriasRef} className="relative inline-block text-left">
+          <button
+            type="button"
+            onClick={() => setMenuCategoriasAberto((v) => !v)}
+            className="inline-flex items-center gap-2 rounded-lg bg-white/15 px-4 py-2.5 text-sm font-semibold text-white ring-1 ring-white/30 hover:bg-white/25 focus:outline-none focus-visible:ring-2 focus-visible:ring-orange-400"
+            aria-expanded={menuCategoriasAberto}
+            aria-haspopup="menu"
+            aria-controls="menu-categorias-udiz"
+          >
+            Categorias
+            <span
+              className={`inline-block transition-transform ${menuCategoriasAberto ? "rotate-180" : ""}`}
+              aria-hidden
             >
-              {/* BOLINHA */}
-              <div className="w-16 h-16 bg-white text-black rounded-full flex items-center justify-center text-2xl shadow-md hover:scale-105 transition">
-                {cat.emoji}
-              </div>
+              ▼
+            </span>
+          </button>
 
-              {/* NOME */}
-              <span className="mt-2 text-sm text-white text-center">
-                {cat.nome}
-              </span>
-            </button>
-          ))}
+          {menuCategoriasAberto ? (
+            <ul
+              id="menu-categorias-udiz"
+              role="menu"
+              className="absolute left-1/2 z-20 mt-2 w-[min(100vw-2rem,22rem)] -translate-x-1/2 rounded-xl border border-white/20 bg-white py-2 text-gray-900 shadow-xl max-h-[min(70vh,24rem)] overflow-y-auto"
+            >
+              {CATEGORIAS_UDIZ.map((cat) => (
+                <li key={cat} role="none">
+                  <button
+                    type="button"
+                    role="menuitem"
+                    className="w-full px-4 py-2.5 text-left text-sm hover:bg-purple-50 focus:bg-purple-50 focus:outline-none"
+                    onClick={() => irParaCategoria(cat)}
+                  >
+                    {cat}
+                  </button>
+                </li>
+              ))}
+            </ul>
+          ) : null}
         </div>
-
       </div>
     </div>
   );

@@ -26,33 +26,11 @@ import {
 } from "@/lib/cidades";
 import type { Usuario } from "@/lib/types";
 import { readUsuario, refreshUsuarioFromSupabaseSession } from "@/lib/usuario";
-
-const CATEGORIAS = [
-  "Brinquedos",
-  "Cosméticos",
-  "Escritório",
-  "Escola",
-  "Casa/Jardim",
-  "Decoração",
-  "Festas",
-  "Pet",
-  "Ferragista",
-  "Eletrônicos",
-  "Outros",
-];
-
-function normalizeCategoria(valor: string): string {
-  return valor
-    .trim()
-    .toLowerCase()
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "");
-}
-
-function correspondeCategoriaFerragista(categoriaProduto: string): boolean {
-  const cat = normalizeCategoria(categoriaProduto);
-  return cat.includes("ferragista") || cat.includes("ferrament") || cat.includes("construc");
-}
+import {
+  CATEGORIAS_UDIZ,
+  normalizaParametroCategoriaDaUrl,
+  produtoPassaNoFiltroCategoria,
+} from "@/lib/categoriasUdiz";
 
 function BuscaContent() {
   const router = useRouter();
@@ -82,10 +60,19 @@ function BuscaContent() {
   }, []);
 
   useEffect(() => {
+    const catNorm = normalizaParametroCategoriaDaUrl(catParam);
     setTermo(qParam);
-    setCategoria(catParam);
+    setCategoria(catNorm);
+    if (catParam && catNorm !== catParam) {
+      const p = new URLSearchParams();
+      if (qParam) p.set("q", qParam);
+      p.set("categoria", catNorm);
+      if (cidadeParam) p.set("cidade", cidadeParam);
+      const qs = p.toString();
+      router.replace(`/busca?${qs}`);
+    }
     setCidade(cidadeParam || readCidadeSelecionada());
-  }, [qParam, catParam, cidadeParam]);
+  }, [qParam, catParam, cidadeParam, router]);
 
   useEffect(() => {
     writeCidadeSelecionada(cidade);
@@ -96,11 +83,7 @@ function BuscaContent() {
     return produtos.filter((p) => {
       const loja = findLojaById(lojas, p.loja_id);
       const matchCidade = !cidade || lojaCorrespondeCidadeFiltrada(loja, cidade);
-      const matchCat = !categoria
-        ? true
-        : categoria === "Ferragista"
-          ? correspondeCategoriaFerragista(p.categoria)
-          : p.categoria === categoria;
+      const matchCat = produtoPassaNoFiltroCategoria(p.categoria, categoria);
       const matchNome =
         !t ||
         p.nome.toLowerCase().includes(t) ||
@@ -119,8 +102,6 @@ function BuscaContent() {
     router.push(qs ? `/busca?${qs}` : "/busca");
   };
 
-  const cabecalhoFerragista = categoria === "Ferragista";
-
   return (
     <div className="min-h-screen w-full overflow-x-hidden bg-gray-100">
       <Header
@@ -132,12 +113,10 @@ function BuscaContent() {
       <div className="w-full min-w-0 max-w-full box-border pt-36 pb-24 md:pb-10 px-4 sm:px-5 md:px-8 md:pt-32 lg:pt-36">
         <div className="max-w-6xl mx-auto w-full min-w-0">
           <h1 className="text-2xl font-bold text-gray-900 mb-2 scroll-mt-32">
-            {cabecalhoFerragista ? "Ferragista/ Ferramentas/ construção no Geral" : "Buscar produtos"}
+            {categoria ? `Buscar em: ${categoria}` : "Buscar produtos"}
           </h1>
           <p className="text-sm text-gray-600 mb-6">
-            {cabecalhoFerragista
-              ? "Procure o produto que você precisa."
-              : "Veja onde encontrar perto de você (dados das lojas cadastradas no Udiz Estoque)."}
+            Veja onde encontrar perto de você (dados das lojas cadastradas no Udiz Estoque).
           </p>
 
           <div className="bg-white rounded-xl shadow p-4 mb-6 flex flex-col md:flex-row md:flex-wrap gap-3 min-w-0 w-full max-w-full">
@@ -154,7 +133,7 @@ function BuscaContent() {
               className="w-full min-w-0 md:w-48 md:max-w-[12rem] shrink-0 border border-gray-300 rounded-lg px-3 py-2 text-gray-900"
             >
               <option value="">Todas as categorias</option>
-              {CATEGORIAS.map((c) => (
+              {CATEGORIAS_UDIZ.map((c) => (
                 <option key={c} value={c}>
                   {c}
                 </option>
