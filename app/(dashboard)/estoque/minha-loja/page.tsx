@@ -2,7 +2,7 @@
 
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
-import { fileToDataUrl, validateImageFile } from "@/lib/files";
+import { fileToDataUrl, optimizeImageForUpload, validateImageFile } from "@/lib/files";
 import { montarEnderecoParaGoogleMaps, rotuloLocalPublicoLoja } from "@/lib/enderecoLoja";
 import type { Loja, Produto } from "@/lib/types";
 import { canEditLoja } from "@/lib/authz";
@@ -187,21 +187,21 @@ function MinhaLojaContent() {
   const handleLojaFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (file) {
-      const fileError = validateImageFile(file);
+    if (!file) return;
+    try {
+      const optimized = await optimizeImageForUpload(file);
+      const fileError = validateImageFile(optimized);
       if (fileError) {
         setErro(fileError);
         return;
       }
-      try {
-        setLojaImagemFile(file);
-        setLojaImagemPreview(await fileToDataUrl(file));
-        setErro("");
-      } catch {
-        setLojaImagemFile(null);
-        setLojaImagemPreview(null);
-        setErro("Não foi possível processar a imagem.");
-      }
+      setLojaImagemFile(optimized);
+      setLojaImagemPreview(await fileToDataUrl(optimized));
+      setErro("");
+    } catch {
+      setLojaImagemFile(null);
+      setLojaImagemPreview(null);
+      setErro("Não foi possível processar a imagem.");
     }
   };
 
@@ -374,21 +374,21 @@ function MinhaLojaContent() {
   const handleFotoProduto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (file) {
-      const fileError = validateImageFile(file);
+    if (!file) return;
+    try {
+      const optimized = await optimizeImageForUpload(file);
+      const fileError = validateImageFile(optimized);
       if (fileError) {
         setErro(fileError);
         return;
       }
-      try {
-        setProdutoImagemFile(file);
-        setImagemPreview(await fileToDataUrl(file));
-        setErro("");
-      } catch {
-        setProdutoImagemFile(null);
-        setImagemPreview(null);
-        setErro("Não foi possível processar a imagem.");
-      }
+      setProdutoImagemFile(optimized);
+      setImagemPreview(await fileToDataUrl(optimized));
+      setErro("");
+    } catch {
+      setProdutoImagemFile(null);
+      setImagemPreview(null);
+      setErro("Não foi possível processar a imagem.");
     }
   };
 
@@ -577,6 +577,7 @@ function MinhaLojaContent() {
               id="udiz-loja-foto"
               type="file"
               accept="image/jpeg,image/png,image/webp"
+              capture="environment"
               onChange={(e) => void handleLojaFoto(e)}
               className="sr-only"
             />
@@ -721,6 +722,7 @@ function MinhaLojaContent() {
               id="udiz-produto-foto"
               type="file"
               accept="image/jpeg,image/png,image/webp"
+              capture="environment"
               onChange={(e) => void handleFotoProduto(e)}
               className="sr-only"
             />

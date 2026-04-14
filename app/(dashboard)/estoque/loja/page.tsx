@@ -2,7 +2,7 @@
 
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { fileToDataUrl, validateImageFile } from "@/lib/files";
+import { fileToDataUrl, optimizeImageForUpload, validateImageFile } from "@/lib/files";
 import { montarEnderecoParaGoogleMaps } from "@/lib/enderecoLoja";
 import { getDataProvider } from "@/lib/repositories/provider";
 import { lojaRepo } from "@/lib/repositories/localDb";
@@ -97,21 +97,21 @@ export default function CriarLoja() {
   const handleImage = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
-    if (file) {
-      const fileError = validateImageFile(file);
+    if (!file) return;
+    try {
+      const optimized = await optimizeImageForUpload(file);
+      const fileError = validateImageFile(optimized);
       if (fileError) {
         setErro(fileError);
         return;
       }
-      try {
-        setImagemFile(file);
-        setImagem(await fileToDataUrl(file));
-        setErro("");
-      } catch {
-        setImagemFile(null);
-        setImagem(null);
-        setErro("Não foi possível processar a imagem.");
-      }
+      setImagemFile(optimized);
+      setImagem(await fileToDataUrl(optimized));
+      setErro("");
+    } catch {
+      setImagemFile(null);
+      setImagem(null);
+      setErro("Não foi possível processar a imagem.");
     }
   };
 
@@ -201,6 +201,7 @@ export default function CriarLoja() {
         ref={fotoInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
+        capture="environment"
         onChange={(e) => void handleImage(e)}
         className="sr-only"
       />

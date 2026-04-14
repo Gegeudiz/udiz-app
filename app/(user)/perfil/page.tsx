@@ -6,7 +6,7 @@ import { useCallback, useEffect, useRef, useState } from "react";
 import BottomNav from "@/components/BottomNav";
 import Header from "@/components/Header";
 import ModalLogin from "@/components/ModalLogin";
-import { fileToDataUrl, validateImageFile } from "@/lib/files";
+import { fileToDataUrl, optimizeImageForUpload, validateImageFile } from "@/lib/files";
 import { getSalvosIds } from "@/lib/favoritos";
 import { getDataProvider } from "@/lib/repositories/provider";
 import PasswordToggleField from "@/components/PasswordToggleField";
@@ -174,23 +174,29 @@ export default function PerfilPage() {
     setTimeout(() => setMsg("idle"), 2200);
   };
 
-  const onEscolherFoto = (e: React.ChangeEvent<HTMLInputElement>) => {
+  const onEscolherFoto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     setErroFoto(null);
     const file = e.target.files?.[0];
     e.target.value = "";
-    const fileError = validateImageFile(file);
-    if (fileError) {
-      setErroFoto(fileError);
-      return;
-    }
     if (!file) return;
-    setFotoFile(file);
-    void fileToDataUrl(file)
-      .then((dataUrl) => setFotoPreview(dataUrl))
-      .catch(() => {
-        setFotoFile(null);
-        setErroFoto("Não foi possível processar a imagem.");
-      });
+    try {
+      const optimized = await optimizeImageForUpload(file);
+      const fileError = validateImageFile(optimized);
+      if (fileError) {
+        setErroFoto(fileError);
+        return;
+      }
+      setFotoFile(optimized);
+      void fileToDataUrl(optimized)
+        .then((dataUrl) => setFotoPreview(dataUrl))
+        .catch(() => {
+          setFotoFile(null);
+          setErroFoto("Não foi possível processar a imagem.");
+        });
+    } catch {
+      setFotoFile(null);
+      setErroFoto("Não foi possível processar a imagem.");
+    }
   };
 
   const removerFoto = () => {
@@ -310,8 +316,9 @@ export default function PerfilPage() {
                   ref={fileRef}
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
+                  capture="environment"
                   className="hidden"
-                  onChange={onEscolherFoto}
+                  onChange={(e) => void onEscolherFoto(e)}
                 />
               </div>
               {erroFoto && (
