@@ -22,6 +22,7 @@ import { readUsuario, refreshUsuarioFromSupabaseSession, writeUsuario } from "@/
 export default function PerfilPage() {
   const router = useRouter();
   const fileRef = useRef<HTMLInputElement>(null);
+  const fileCameraRef = useRef<HTMLInputElement>(null);
   const [usuario, setUsuario] = useState<Usuario | null>(null);
   const [loginAberto, setLoginAberto] = useState(false);
   const [nome, setNome] = useState("");
@@ -305,10 +306,10 @@ export default function PerfilPage() {
                 </div>
                 <button
                   type="button"
-                  onClick={() => fileRef.current?.click()}
+                  onClick={() => fileCameraRef.current?.click()}
                   className="absolute bottom-1 right-1 flex h-10 w-10 items-center justify-center rounded-full bg-orange-500 text-lg text-white shadow-md ring-4 ring-white hover:bg-orange-600 transition-colors"
-                  aria-label="Alterar foto"
-                  title="Alterar foto"
+                  aria-label="Tirar foto"
+                  title="Tirar foto"
                 >
                   📷
                 </button>
@@ -316,10 +317,33 @@ export default function PerfilPage() {
                   ref={fileRef}
                   type="file"
                   accept="image/jpeg,image/png,image/webp"
+                  className="hidden"
+                  onChange={(e) => void onEscolherFoto(e)}
+                />
+                <input
+                  ref={fileCameraRef}
+                  type="file"
+                  accept="image/jpeg,image/png,image/webp"
                   capture="environment"
                   className="hidden"
                   onChange={(e) => void onEscolherFoto(e)}
                 />
+              </div>
+              <div className="mt-3 flex flex-wrap items-center justify-center gap-2">
+                <button
+                  type="button"
+                  onClick={() => fileCameraRef.current?.click()}
+                  className="rounded-lg border border-orange-300 px-3 py-1.5 text-xs font-semibold text-orange-700 hover:bg-orange-50"
+                >
+                  Tirar foto
+                </button>
+                <button
+                  type="button"
+                  onClick={() => fileRef.current?.click()}
+                  className="rounded-lg border border-purple-300 px-3 py-1.5 text-xs font-semibold text-purple-700 hover:bg-purple-50"
+                >
+                  Escolher da galeria
+                </button>
               </div>
               {erroFoto && (
                 <p className="mt-3 text-center text-sm text-red-600 max-w-sm">{erroFoto}</p>

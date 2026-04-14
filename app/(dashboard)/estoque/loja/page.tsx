@@ -14,6 +14,7 @@ import { readUsuario } from "@/lib/usuario";
 export default function CriarLoja() {
   const router = useRouter();
   const fotoInputRef = useRef<HTMLInputElement>(null);
+  const fotoCameraInputRef = useRef<HTMLInputElement>(null);
 
   const [nome, setNome] = useState("");
   const [cidade, setCidade] = useState("");
@@ -201,17 +202,33 @@ export default function CriarLoja() {
         ref={fotoInputRef}
         type="file"
         accept="image/jpeg,image/png,image/webp"
+        onChange={(e) => void handleImage(e)}
+        className="sr-only"
+      />
+      <input
+        ref={fotoCameraInputRef}
+        type="file"
+        accept="image/jpeg,image/png,image/webp"
         capture="environment"
         onChange={(e) => void handleImage(e)}
         className="sr-only"
       />
-      <button
-        type="button"
-        onClick={() => fotoInputRef.current?.click()}
-        className="mb-2 inline-flex items-center justify-center rounded-lg border border-purple-300 px-4 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-50"
-      >
-        Adicionar foto
-      </button>
+      <div className="mb-2 flex flex-wrap gap-2">
+        <button
+          type="button"
+          onClick={() => fotoCameraInputRef.current?.click()}
+          className="inline-flex items-center justify-center rounded-lg border border-orange-300 px-4 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-50"
+        >
+          Tirar foto
+        </button>
+        <button
+          type="button"
+          onClick={() => fotoInputRef.current?.click()}
+          className="inline-flex items-center justify-center rounded-lg border border-purple-300 px-4 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-50"
+        >
+          Escolher da galeria
+        </button>
+      </div>
 
       {imagem ? (
         <div className="mb-4 flex flex-col gap-2">

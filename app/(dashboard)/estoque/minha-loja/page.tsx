@@ -61,7 +61,9 @@ function MinhaLojaContent() {
   const [lojaImagemFile, setLojaImagemFile] = useState<File | null>(null);
   const [produtoImagemFile, setProdutoImagemFile] = useState<File | null>(null);
   const lojaFotoInputRef = useRef<HTMLInputElement>(null);
+  const lojaFotoCameraInputRef = useRef<HTMLInputElement>(null);
   const produtoFotoInputRef = useRef<HTMLInputElement>(null);
+  const produtoFotoCameraInputRef = useRef<HTMLInputElement>(null);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
   const [excluirDialog, setExcluirDialog] = useState<
@@ -577,18 +579,36 @@ function MinhaLojaContent() {
               id="udiz-loja-foto"
               type="file"
               accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => void handleLojaFoto(e)}
+              className="sr-only"
+            />
+            <input
+              ref={lojaFotoCameraInputRef}
+              id="udiz-loja-foto-camera"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
               capture="environment"
               onChange={(e) => void handleLojaFoto(e)}
               className="sr-only"
             />
-            <button
-              type="button"
-              onClick={() => lojaFotoInputRef.current?.click()}
-              className="mb-2 inline-flex items-center justify-center rounded-lg border border-purple-300 px-4 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-50"
-              aria-label="Selecionar foto da loja"
-            >
-              Adicionar Foto
-            </button>
+            <div className="mb-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => lojaFotoCameraInputRef.current?.click()}
+                className="inline-flex items-center justify-center rounded-lg border border-orange-300 px-4 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-50"
+                aria-label="Tirar foto da loja"
+              >
+                Tirar foto
+              </button>
+              <button
+                type="button"
+                onClick={() => lojaFotoInputRef.current?.click()}
+                className="inline-flex items-center justify-center rounded-lg border border-purple-300 px-4 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-50"
+                aria-label="Escolher foto da loja na galeria"
+              >
+                Escolher da galeria
+              </button>
+            </div>
             {lojaImagemPreview ? (
               <div className="mb-3 flex flex-col gap-2">
                 <img
@@ -722,18 +742,36 @@ function MinhaLojaContent() {
               id="udiz-produto-foto"
               type="file"
               accept="image/jpeg,image/png,image/webp"
+              onChange={(e) => void handleFotoProduto(e)}
+              className="sr-only"
+            />
+            <input
+              ref={produtoFotoCameraInputRef}
+              id="udiz-produto-foto-camera"
+              type="file"
+              accept="image/jpeg,image/png,image/webp"
               capture="environment"
               onChange={(e) => void handleFotoProduto(e)}
               className="sr-only"
             />
-            <button
-              type="button"
-              onClick={() => produtoFotoInputRef.current?.click()}
-              className="mb-2 inline-flex items-center justify-center rounded-lg border border-purple-300 px-4 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-50"
-              aria-label="Selecionar foto do produto"
-            >
-              Adicionar Foto
-            </button>
+            <div className="mb-2 flex flex-wrap gap-2">
+              <button
+                type="button"
+                onClick={() => produtoFotoCameraInputRef.current?.click()}
+                className="inline-flex items-center justify-center rounded-lg border border-orange-300 px-4 py-2 text-sm font-semibold text-orange-700 hover:bg-orange-50"
+                aria-label="Tirar foto do produto"
+              >
+                Tirar foto
+              </button>
+              <button
+                type="button"
+                onClick={() => produtoFotoInputRef.current?.click()}
+                className="inline-flex items-center justify-center rounded-lg border border-purple-300 px-4 py-2 text-sm font-semibold text-purple-700 hover:bg-purple-50"
+                aria-label="Escolher foto do produto na galeria"
+              >
+                Escolher da galeria
+              </button>
+            </div>
 
             {imagemPreview ? (
               <div className="mb-3 flex flex-col gap-2">
