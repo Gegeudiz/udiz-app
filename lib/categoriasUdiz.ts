@@ -4,8 +4,9 @@
  */
 export const CATEGORIAS_UDIZ = [
   "Brinquedos/Jogos",
-  "Esporte",
+  "Esporte/Suplementos",
   "Cosméticos/Produtos de beleza",
+  "joias/semijoias",
   "Escritório/Escola",
   "Casa",
   "Construção",
@@ -20,8 +21,9 @@ export type CategoriaUdiz = (typeof CATEGORIAS_UDIZ)[number];
 /** Categorias exatas usadas antes da consolidação (produtos já cadastrados). */
 const LEGACY_POR_CATEGORIA: Record<string, readonly string[]> = {
   "Brinquedos/Jogos": ["Brinquedos"],
-  Esporte: [],
+  "Esporte/Suplementos": ["Esporte"],
   "Cosméticos/Produtos de beleza": ["Cosméticos"],
+  "joias/semijoias": [],
   "Escritório/Escola": ["Escritório", "Escola"],
   Casa: ["Casa/Jardim", "Decoração", "Festas"],
   Construção: [],
@@ -88,6 +90,7 @@ export function produtoPassaNoFiltroCategoria(
 /** Links antigos da busca (?categoria=…) ainda usados em favoritos ou histórico. */
 const CATEGORIA_QUERY_LEGACY: Record<string, string> = {
   Brinquedos: "Brinquedos/Jogos",
+  Esporte: "Esporte/Suplementos",
   Cosméticos: "Cosméticos/Produtos de beleza",
   Escritório: "Escritório/Escola",
   Escola: "Escritório/Escola",

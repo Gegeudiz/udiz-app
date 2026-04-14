@@ -39,7 +39,7 @@ export default function BannerPromocional() {
 
   return (
     <section
-      className="w-full max-w-[100vw] pt-6 sm:pt-7 md:pt-8 px-2 sm:px-3 md:px-4"
+      className="w-full max-w-[100vw] pt-6 sm:pt-7 md:pt-14 px-2 sm:px-3 md:px-4"
       aria-roledescription="carousel"
       aria-label="Destaques e novidades do Udiz"
     >

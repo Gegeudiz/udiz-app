@@ -36,14 +36,14 @@ export default function Header({ usuario, abrirLogin, onLogout }: HeaderProps) {
 
   return (
     <header className="fixed top-0 left-0 w-full bg-white shadow-md border-b border-gray-200 z-50">
-      <div className="max-w-6xl mx-auto px-4 py-3 flex justify-between items-center gap-3 md:gap-4">
+      <div className="max-w-6xl mx-auto px-4 py-2 md:py-2.5 flex justify-between items-center gap-3 md:gap-4">
         <Link href="/" className="shrink-0 min-w-0 self-center">
           <Image
             src="/logo.png"
             alt="Logo Udiz"
-            width={140}
-            height={80}
-            className="object-contain md:w-[150px]"
+            width={220}
+            height={96}
+            className="h-auto w-[130px] md:w-[220px] object-contain"
           />
         </Link>
 
