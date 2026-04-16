@@ -3,8 +3,14 @@ import { NextRequest, NextResponse } from "next/server";
 import { resolvePublicAppBaseUrlFromRequest } from "@/lib/appUrl";
 
 /**
- * Envia email de recuperação de senha com `redirectTo` baseado no host da requisição (Vercel),
- * para o link do email não apontar para localhost quando o .env de produção estiver errado.
+ * Envia email de recuperação de senha com `redirectTo` calculado no servidor (`resolvePublicAppBaseUrlFromRequest`).
+ *
+ * Obrigatório no painel Supabase → Authentication → URL Configuration:
+ * - Site URL: https://udiz.com.br (seu domínio público, não localhost)
+ * - Redirect URLs: inclua https://udiz.com.br/auth/callback (e/ou https://udiz.com.br/**)
+ * Se o redirect não estiver permitido, o Supabase ignora e usa a Site URL (muitas vezes localhost).
+ *
+ * Na Vercel, defina AUTH_PUBLIC_APP_URL=https://udiz.com.br para garantir o domínio do link.
  */
 export async function POST(request: NextRequest) {
   let body: { email?: string };

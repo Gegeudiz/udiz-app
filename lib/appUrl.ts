@@ -1,7 +1,8 @@
 import type { NextRequest } from "next/server";
 
+/** Remove espaços acidentais (ex.: variável de ambiente "https://udiz.com.br ") e barras finais. */
 function stripTrailingSlash(u: string) {
-  return u.replace(/\/+$/, "");
+  return u.trim().replace(/\/+$/, "");
 }
 
 function isLoopbackOrigin(url: string): boolean {
@@ -49,8 +50,8 @@ export function resolveAppBaseUrl(request?: NextRequest): string {
   if (explicit) return stripTrailingSlash(explicit);
 
   if (request) {
-    const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
-    const proto = request.headers.get("x-forwarded-proto") ?? "https";
+    const host = (request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "").trim();
+    const proto = (request.headers.get("x-forwarded-proto") ?? "https").trim();
     if (host) return stripTrailingSlash(`${proto}://${host}`);
   }
 
@@ -62,12 +63,29 @@ export function resolveAppBaseUrl(request?: NextRequest): string {
 
 /**
  * Base pública a partir da request (Route Handlers na Vercel).
- * Prioriza o host real da requisição; assim `NEXT_PUBLIC_APP_URL=http://localhost:3000` no deploy
- * não força links de recuperação de senha para localhost.
+ *
+ * 1) `AUTH_PUBLIC_APP_URL` (só servidor, ex.: https://udiz.com.br) — use na Vercel para forçar o domínio
+ *    do link de recuperação de senha, mesmo se `NEXT_PUBLIC_APP_URL` estiver como localhost.
+ * 2) Host da requisição (não-loopback).
+ * 3) `NEXT_PUBLIC_APP_URL` se não for loopback.
+ * 4) `VERCEL_URL` / localhost.
+ *
+ * No Supabase (Authentication → URL Configuration): se o `redirect_to` enviado não estiver em **Redirect URLs**,
+ * o Auth usa a **Site URL**; se a Site URL for localhost, o email continuará com localhost — ajuste lá também.
  */
 export function resolvePublicAppBaseUrlFromRequest(request: NextRequest): string {
-  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
-  const proto = request.headers.get("x-forwarded-proto") ?? "https";
+  const authOverride = process.env.AUTH_PUBLIC_APP_URL?.trim();
+  if (authOverride) {
+    try {
+      const o = stripTrailingSlash(authOverride);
+      if (!isLoopbackOrigin(o)) return o;
+    } catch {
+      /* ignorar valor inválido */
+    }
+  }
+
+  const host = (request.headers.get("x-forwarded-host") ?? request.headers.get("host") ?? "").trim();
+  const proto = (request.headers.get("x-forwarded-proto") ?? "https").trim();
 
   if (host) {
     const fromRequest = stripTrailingSlash(`${proto}://${host}`);
