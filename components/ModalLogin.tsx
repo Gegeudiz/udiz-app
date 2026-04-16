@@ -32,6 +32,7 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
   const [emailAguardandoConfirmacao, setEmailAguardandoConfirmacao] = useState<string | null>(null);
   const [emailEsqueci, setEmailEsqueci] = useState("");
   const [resetEnviado, setResetEnviado] = useState(false);
+  const [mostrarSenhaLogin, setMostrarSenhaLogin] = useState(false);
 
   const usarSupabase = getDataProvider() === "supabase";
 
@@ -47,6 +48,7 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
     setEmailAguardandoConfirmacao(null);
     setEmailEsqueci("");
     setResetEnviado(false);
+    setMostrarSenhaLogin(false);
   };
 
   const handleLogin = (user: Usuario) => {
@@ -133,7 +135,7 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
             ? "Informe o email cadastrado. Se existir uma conta, você receberá um link para criar uma nova senha."
             : usarSupabase
               ? modo === "login"
-                ? "Use o mesmo email e senha cadastrados no Supabase (Auth)."
+                ? "Coloque o seu email e senha cadastrados ou então crie uma conta para cadastrar seu Perfil no Udiz."
                 : "Preencha os dados. Se o projeto exigir confirmação por email, você receberá um link para ativar a conta."
               : modo === "login"
                 ? "Acesse para continuar no Udiz."
@@ -190,14 +192,44 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
               className="w-full border border-gray-300 text-gray-900 placeholder:text-gray-500 p-3 rounded-md mb-3 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
             />
 
-            <input
-              type="password"
-              placeholder="Senha"
-              value={loginSenha}
-              onChange={(e) => setLoginSenha(e.target.value)}
-              autoComplete="current-password"
-              className="w-full border border-gray-300 text-gray-900 placeholder:text-gray-500 p-3 rounded-md mb-2 focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
-            />
+            <div className="relative mb-2">
+              <input
+                type={mostrarSenhaLogin ? "text" : "password"}
+                placeholder="Senha"
+                value={loginSenha}
+                onChange={(e) => setLoginSenha(e.target.value)}
+                autoComplete="current-password"
+                className="w-full border border-gray-300 text-gray-900 placeholder:text-gray-500 p-3 pr-12 rounded-md focus:outline-none focus:ring-2 focus:ring-purple-500 focus:border-purple-500"
+              />
+              <button
+                type="button"
+                onClick={() => setMostrarSenhaLogin((v) => !v)}
+                aria-label={mostrarSenhaLogin ? "Ocultar senha" : "Mostrar senha"}
+                title={mostrarSenhaLogin ? "Ocultar senha" : "Mostrar senha"}
+                className="absolute inset-y-0 right-0 px-3 text-gray-500 hover:text-gray-700"
+              >
+                {mostrarSenhaLogin ? (
+                  <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 fill-none stroke-current">
+                    <path
+                      d="M4 4l16 16M10.6 10.6A2 2 0 0012 14a2 2 0 001.4-.6M9.9 5.2A9.6 9.6 0 0112 5c4.9 0 8.3 4.2 9 5-.4.6-1.8 2.7-4.1 4.2M6.5 6.5C4.2 8 2.8 10.1 2.4 10.7 3.1 11.5 6.5 15.7 11.4 15.7c.7 0 1.4-.1 2-.2"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                  </svg>
+                ) : (
+                  <svg viewBox="0 0 24 24" aria-hidden="true" className="h-5 w-5 fill-none stroke-current">
+                    <path
+                      d="M2.4 12.7C3.1 13.5 6.5 17.7 12 17.7s8.9-4.2 9.6-5c-.7-.8-4.1-5-9.6-5s-8.9 4.2-9.6 5z"
+                      strokeWidth="1.8"
+                      strokeLinecap="round"
+                      strokeLinejoin="round"
+                    />
+                    <circle cx="12" cy="12.7" r="2.8" strokeWidth="1.8" />
+                  </svg>
+                )}
+              </button>
+            </div>
 
             {usarSupabase ? (
               <button

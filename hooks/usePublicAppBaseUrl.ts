@@ -1,17 +1,16 @@
 "use client";
 
 import { useEffect, useState } from "react";
+import { resolveBrowserPublicOrigin } from "@/lib/appUrl";
 
 /**
- * Origem pública do app no cliente: NEXT_PUBLIC_APP_URL ou window.location.origin.
+ * Origem pública do app no cliente (alinhada a links de auth / recuperação de senha).
  * Só fica disponível após o mount (evita mismatch de hidratação).
  */
 export function usePublicAppBaseUrl(): string {
   const [base, setBase] = useState("");
   useEffect(() => {
-    const env = process.env.NEXT_PUBLIC_APP_URL?.trim();
-    const origin = env || (typeof window !== "undefined" ? window.location.origin : "");
-    setBase(origin.replace(/\/+$/, ""));
+    setBase(resolveBrowserPublicOrigin());
   }, []);
   return base;
 }
