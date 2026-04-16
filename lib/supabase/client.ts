@@ -24,8 +24,11 @@ export function createSupabaseBrowserClient(): SupabaseClient {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
-        /** Necessário para processar links de email no callback. */
-        detectSessionInUrl: true,
+        /**
+         * false: o hash de recuperação na raiz (`/#access_token=…&type=recovery`) não deve criar
+         * sessão na home — só `/auth/callback` trata o link (e `AuthRecoveryRedirect` manda para lá).
+         */
+        detectSessionInUrl: false,
         /**
          * IMPORTANTE:
          * Não forçar PKCE no cliente browser para recuperação de senha.

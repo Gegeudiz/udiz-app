@@ -4,6 +4,7 @@ import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { useEffect, useState } from "react";
 import PasswordToggleField from "@/components/PasswordToggleField";
+import { syncUserFromSupabaseSession } from "@/lib/supabase/authSession";
 import { createSupabaseBrowserClient } from "@/lib/supabase/client";
 
 /**
@@ -27,14 +28,46 @@ export default function AuthCallbackPage() {
     let cancelado = false;
     let unsubscribe: (() => void) | undefined;
     let timeoutId: number | undefined;
+    let resolved = false;
+
+    const limparTimeout = () => {
+      if (timeoutId !== undefined) {
+        window.clearTimeout(timeoutId);
+        timeoutId = undefined;
+      }
+    };
+
+    const marcarPronto = () => {
+      if (cancelado || resolved) return;
+      resolved = true;
+      limparTimeout();
+      setEstado("pronto");
+    };
+
+    const marcarErro = (mensagem: string) => {
+      if (cancelado || resolved) return;
+      resolved = true;
+      limparTimeout();
+      setErroSessao(mensagem);
+      setEstado("erro");
+    };
 
     void (async () => {
       try {
         const supabase = createSupabaseBrowserClient();
+
+        const {
+          data: { subscription },
+        } = supabase.auth.onAuthStateChange((event) => {
+          if (cancelado) return;
+          if (event === "PASSWORD_RECOVERY") marcarPronto();
+        });
+        unsubscribe = () => subscription.unsubscribe();
+
         const url = new URL(window.location.href);
         const code = url.searchParams.get("code");
         const tokenHash = url.searchParams.get("token_hash");
-        const type = url.searchParams.get("type");
+        const searchType = url.searchParams.get("type");
         const queryAccessToken = url.searchParams.get("access_token");
         const queryRefreshToken = url.searchParams.get("refresh_token");
 
@@ -42,46 +75,67 @@ export default function AuthCallbackPage() {
           const { error } = await supabase.auth.exchangeCodeForSession(code);
           if (cancelado) return;
           if (error) {
-            setErroSessao(error.message);
-            setEstado("erro");
+            marcarErro(error.message);
             return;
           }
           window.history.replaceState({}, "", url.pathname);
-          setEstado("pronto");
+          marcarPronto();
           return;
         }
 
-        // Fallback importante para mobile/iOS: alguns fluxos chegam como ?token_hash=...&type=recovery
-        if (tokenHash && type === "recovery") {
+        if (tokenHash && searchType === "recovery") {
           const { error } = await supabase.auth.verifyOtp({
             type: "recovery",
             token_hash: tokenHash,
           });
           if (cancelado) return;
           if (error) {
-            setErroSessao(error.message);
-            setEstado("erro");
+            marcarErro(error.message);
             return;
           }
           window.history.replaceState({}, "", url.pathname);
-          setEstado("pronto");
+          marcarPronto();
           return;
         }
 
-        // Alguns webviews convertem hash para query string.
-        if (queryAccessToken && queryRefreshToken) {
+        if (queryAccessToken && queryRefreshToken && searchType === "recovery") {
           const { error } = await supabase.auth.setSession({
             access_token: queryAccessToken,
             refresh_token: queryRefreshToken,
           });
           if (cancelado) return;
           if (error) {
-            setErroSessao(error.message);
-            setEstado("erro");
+            marcarErro(error.message);
             return;
           }
           window.history.replaceState({}, "", url.pathname);
-          setEstado("pronto");
+          marcarPronto();
+          return;
+        }
+
+        if (
+          queryAccessToken &&
+          queryRefreshToken &&
+          (searchType === "signup" || searchType === "email")
+        ) {
+          const { error } = await supabase.auth.setSession({
+            access_token: queryAccessToken,
+            refresh_token: queryRefreshToken,
+          });
+          if (cancelado) return;
+          if (error) {
+            marcarErro(error.message);
+            return;
+          }
+          await syncUserFromSupabaseSession();
+          if (cancelado) return;
+          resolved = true;
+          limparTimeout();
+          window.history.replaceState({}, "", "/");
+          router.replace("/");
+          if (typeof window !== "undefined") {
+            window.dispatchEvent(new CustomEvent("udiz:usuario-atualizado"));
+          }
           return;
         }
 
@@ -90,71 +144,66 @@ export default function AuthCallbackPage() {
           const params = new URLSearchParams(hash);
           const access_token = params.get("access_token");
           const refresh_token = params.get("refresh_token");
-          if (access_token && refresh_token) {
+          const hashType = params.get("type");
+          if (access_token && refresh_token && hashType === "recovery") {
             const { error } = await supabase.auth.setSession({
               access_token,
               refresh_token,
             });
             if (cancelado) return;
             if (error) {
-              setErroSessao(error.message);
-              setEstado("erro");
+              marcarErro(error.message);
               return;
             }
             window.history.replaceState({}, "", url.pathname + url.search);
-            setEstado("pronto");
+            marcarPronto();
+            return;
+          }
+          if (
+            access_token &&
+            refresh_token &&
+            (hashType === "signup" || hashType === "email")
+          ) {
+            const { error } = await supabase.auth.setSession({
+              access_token,
+              refresh_token,
+            });
+            if (cancelado) return;
+            if (error) {
+              marcarErro(error.message);
+              return;
+            }
+            await syncUserFromSupabaseSession();
+            if (cancelado) return;
+            resolved = true;
+            limparTimeout();
+            window.history.replaceState({}, "", "/");
+            router.replace("/");
+            if (typeof window !== "undefined") {
+              window.dispatchEvent(new CustomEvent("udiz:usuario-atualizado"));
+            }
             return;
           }
         }
 
-        const {
-          data: { subscription },
-        } = supabase.auth.onAuthStateChange((event, session) => {
-          if (cancelado) return;
-          if (
-            event === "PASSWORD_RECOVERY" ||
-            (event === "SIGNED_IN" && session)
-          ) {
-            setEstado("pronto");
-          }
-        });
-        unsubscribe = () => subscription.unsubscribe();
-
-        const {
-          data: { session },
-        } = await supabase.auth.getSession();
-        if (cancelado) return;
-        if (session) {
-          setEstado("pronto");
-          return;
-        }
-
         timeoutId = window.setTimeout(() => {
-          void supabase.auth.getSession().then(({ data: { session: s2 } }) => {
-            if (cancelado) return;
-            if (s2) {
-              setEstado("pronto");
-              return;
-            }
-            setErroSessao(
-              "Não foi possível validar o link (expirado, já usado ou URL incorreta). Peça um novo email em Esqueci a senha. No painel do Supabase, confira Site URL e Redirect URLs (incluindo https://seu-dominio/auth/callback).",
-            );
-            setEstado("erro");
-          });
-        }, 3000);
+          if (cancelado || resolved) return;
+          marcarErro(
+            "Não foi possível validar o link (expirado, já usado ou URL incorreta). Peça um novo email em Esqueci a senha. No painel do Supabase, confira Site URL e Redirect URLs (incluindo https://seu-dominio/auth/callback).",
+          );
+        }, 5000);
       } catch (e) {
         if (cancelado) return;
-        setErroSessao(e instanceof Error ? e.message : "Erro ao processar o link.");
-        setEstado("erro");
+        marcarErro(e instanceof Error ? e.message : "Erro ao processar o link.");
       }
     })();
 
     return () => {
       cancelado = true;
       unsubscribe?.();
-      if (timeoutId !== undefined) window.clearTimeout(timeoutId);
+      limparTimeout();
     };
-  }, []);
+  }, [router]);
 
   const enviar = async () => {
     setMsg(null);
