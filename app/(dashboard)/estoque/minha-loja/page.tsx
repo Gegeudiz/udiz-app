@@ -66,6 +66,7 @@ function MinhaLojaContent() {
   const produtoFotoCameraInputRef = useRef<HTMLInputElement>(null);
   const [erro, setErro] = useState("");
   const [sucesso, setSucesso] = useState("");
+  const [salvandoProduto, setSalvandoProduto] = useState(false);
   const [excluirDialog, setExcluirDialog] = useState<
     null | { tipo: "loja"; nome: string } | { tipo: "produto"; id: string; nome: string }
   >(null);
@@ -259,70 +260,76 @@ function MinhaLojaContent() {
   };
 
   const salvarProduto = async () => {
+    if (salvandoProduto) return;
     if (!categoria.trim()) {
       setErro("Selecione uma categoria.");
       return;
     }
     const usuario = readUsuario();
     if (!usuario || !loja || !canEditLoja(usuario, loja)) return;
-    if (produtoEditandoId != null) {
-      const result =
-        getDataProvider() === "supabase"
-          ? await remoteUpdateProduto(
-              produtoEditandoId,
-              lojaId,
-              {
+    setSalvandoProduto(true);
+    try {
+      if (produtoEditandoId != null) {
+        const result =
+          getDataProvider() === "supabase"
+            ? await remoteUpdateProduto(
+                produtoEditandoId,
+                lojaId,
+                {
+                  nome: nome.trim(),
+                  preco: Number(preco) || 0,
+                  categoria,
+                  descricao: descricao.trim(),
+                  imagem: imagemPreview,
+                },
+                { imagemFile: produtoImagemFile }
+              )
+            : produtoRepo.update(produtoEditandoId, lojaId, {
                 nome: nome.trim(),
                 preco: Number(preco) || 0,
                 categoria,
                 descricao: descricao.trim(),
                 imagem: imagemPreview,
-              },
-              { imagemFile: produtoImagemFile }
-            )
-          : produtoRepo.update(produtoEditandoId, lojaId, {
-              nome: nome.trim(),
-              preco: Number(preco) || 0,
-              categoria,
-              descricao: descricao.trim(),
-              imagem: imagemPreview,
-            });
-      if (!result.ok) {
-        setErro(mensagemErroApiParaUsuario(result.message));
-        return;
+              });
+        if (!result.ok) {
+          setErro(mensagemErroApiParaUsuario(result.message));
+          return;
+        }
+        trackEvent("estoque_produto_editado", { userId: usuario.id, lojaId, produtoId: produtoEditandoId });
+        setSucesso("Produto atualizado com sucesso.");
+      } else {
+        const result =
+          getDataProvider() === "supabase"
+            ? await remoteCreateProduto({
+                nome: nome.trim(),
+                preco: Number(preco) || 0,
+                categoria,
+                loja_id: lojaId,
+                descricao: descricao.trim(),
+                imagem: imagemPreview,
+                imagemFile: produtoImagemFile,
+              })
+            : produtoRepo.create({
+                nome: nome.trim(),
+                preco: Number(preco) || 0,
+                categoria,
+                loja_id: lojaId,
+                descricao: descricao.trim(),
+                imagem: imagemPreview,
+              });
+        if (!result.ok) {
+          setErro(mensagemErroApiParaUsuario(result.message));
+          return;
+        }
+        trackEvent("estoque_produto_criado", { userId: usuario.id, lojaId, produtoId: result.data.id });
+        setSucesso("Produto criado com sucesso.");
       }
-      trackEvent("estoque_produto_editado", { userId: usuario.id, lojaId, produtoId: produtoEditandoId });
-      setSucesso("Produto atualizado com sucesso.");
-    } else {
-      const result =
-        getDataProvider() === "supabase"
-          ? await remoteCreateProduto({
-              nome: nome.trim(),
-              preco: Number(preco) || 0,
-              categoria,
-              loja_id: lojaId,
-              descricao: descricao.trim(),
-              imagem: imagemPreview,
-              imagemFile: produtoImagemFile,
-            })
-          : produtoRepo.create({
-              nome: nome.trim(),
-              preco: Number(preco) || 0,
-              categoria,
-              loja_id: lojaId,
-              descricao: descricao.trim(),
-              imagem: imagemPreview,
-            });
-      if (!result.ok) {
-        setErro(mensagemErroApiParaUsuario(result.message));
-        return;
-      }
-      trackEvent("estoque_produto_criado", { userId: usuario.id, lojaId, produtoId: result.data.id });
-      setSucesso("Produto criado com sucesso.");
+      setErro("");
+      fecharModalProduto();
+      recarregar();
+    } finally {
+      setSalvandoProduto(false);
     }
-    setErro("");
-    fecharModalProduto();
-    recarregar();
   };
 
   const confirmarExclusao = async () => {
@@ -797,10 +804,10 @@ function MinhaLojaContent() {
               <button
                 type="button"
                 onClick={() => void salvarProduto()}
-                disabled={!nome.trim() || !categoria || preco === ""}
+                disabled={!nome.trim() || !categoria || preco === "" || salvandoProduto}
                 className="flex-1 bg-purple-600 text-white py-2 rounded-lg font-semibold disabled:opacity-50"
               >
-                {produtoEditandoId != null ? "Salvar alterações" : "Salvar"}
+                {salvandoProduto ? "Salvando..." : produtoEditandoId != null ? "Salvar alterações" : "Salvar"}
               </button>
               <button
                 type="button"
