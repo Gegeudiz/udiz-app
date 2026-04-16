@@ -160,6 +160,26 @@ export async function sendPasswordResetEmail(
   if (getDataProvider() !== "supabase") {
     return { ok: false, message: "Recuperação de senha só está disponível com login na nuvem." };
   }
+
+  /** Servidor define `redirectTo` pelo Host da requisição (evita localhost no email em produção). */
+  if (typeof window !== "undefined") {
+    try {
+      const res = await fetch("/api/auth/forgot-password", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email: email.trim() }),
+      });
+      const data = (await res.json()) as { ok?: boolean; message?: string; error?: string };
+      if (!res.ok || !data.ok) {
+        const msg = data.message || data.error || "Não foi possível enviar o email.";
+        return { ok: false, message: authErrorMessage(msg) };
+      }
+      return { ok: true };
+    } catch {
+      return { ok: false, message: "Falha de rede. Tente de novo." };
+    }
+  }
+
   const supabase = createSupabaseBrowserClient();
   const redirectTo = getAuthCallbackRedirectUrl() || undefined;
   const { error } = await supabase.auth.resetPasswordForEmail(email.trim(), {

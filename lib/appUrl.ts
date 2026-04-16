@@ -60,6 +60,36 @@ export function resolveAppBaseUrl(request?: NextRequest): string {
   return "http://localhost:3000";
 }
 
+/**
+ * Base pública a partir da request (Route Handlers na Vercel).
+ * Prioriza o host real da requisição; assim `NEXT_PUBLIC_APP_URL=http://localhost:3000` no deploy
+ * não força links de recuperação de senha para localhost.
+ */
+export function resolvePublicAppBaseUrlFromRequest(request: NextRequest): string {
+  const host = request.headers.get("x-forwarded-host") ?? request.headers.get("host");
+  const proto = request.headers.get("x-forwarded-proto") ?? "https";
+
+  if (host) {
+    const fromRequest = stripTrailingSlash(`${proto}://${host}`);
+    if (!isLoopbackOrigin(fromRequest)) {
+      return fromRequest;
+    }
+  }
+
+  const explicit = process.env.NEXT_PUBLIC_APP_URL?.trim();
+  if (explicit) {
+    const e = stripTrailingSlash(explicit);
+    if (!isLoopbackOrigin(e)) return e;
+  }
+
+  const vercel = process.env.VERCEL_URL?.trim();
+  if (vercel) return stripTrailingSlash(`https://${vercel}`);
+
+  if (host) return stripTrailingSlash(`${proto}://${host}`);
+
+  return "http://localhost:3000";
+}
+
 /** URL absoluta da página pública de um produto (compartilhar, WhatsApp). */
 export function buildProdutoPageAbsoluteUrl(baseUrl: string, produtoId: string): string {
   const b = baseUrl.replace(/\/+$/, "");
