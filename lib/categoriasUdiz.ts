@@ -8,11 +8,13 @@ export const CATEGORIAS_UDIZ = [
   "Cosméticos/Produtos de beleza",
   "joias/semijoias",
   "Escritório/Escola",
-  "Casa",
-  "Construção",
-  "Ferramentas/Ferragista",
+  "Casa/Decoração",
+  "Ferramentas/ Ferragista/ Construção",
   "Tecnologia/eletrônicos",
   "pet shop",
+  "perfumaria",
+  "mercearia",
+  "festas",
   "Outros",
 ] as const;
 
@@ -25,11 +27,17 @@ const LEGACY_POR_CATEGORIA: Record<string, readonly string[]> = {
   "Cosméticos/Produtos de beleza": ["Cosméticos"],
   "joias/semijoias": [],
   "Escritório/Escola": ["Escritório", "Escola"],
-  Casa: ["Casa/Jardim", "Decoração", "Festas"],
-  Construção: [],
-  "Ferramentas/Ferragista": ["Ferragista"],
+  "Casa/Decoração": ["Casa", "Casa/Jardim", "Decoração"],
+  "Ferramentas/ Ferragista/ Construção": [
+    "Ferragista",
+    "Ferramentas/Ferragista",
+    "Construção",
+  ],
   "Tecnologia/eletrônicos": ["Eletrônicos"],
   "pet shop": ["Pet"],
+  perfumaria: ["Perfumaria", "PERFUMARIA"],
+  mercearia: ["Mercearia", "MERCEARIA"],
+  festas: ["Festas", "FESTAS"],
   Outros: ["Outros"],
 };
 
@@ -69,19 +77,11 @@ export function produtoPassaNoFiltroCategoria(
   const legados = LEGACY_POR_CATEGORIA[filtro];
   if (legados?.some((l) => prod === l)) return true;
 
-  if (filtro === "Ferramentas/Ferragista" && correspondeTextoFerramentasConstrucao(prod)) {
+  if (
+    filtro === "Ferramentas/ Ferragista/ Construção" &&
+    correspondeTextoFerramentasConstrucao(prod)
+  ) {
     return true;
-  }
-
-  if (filtro === "Construção" && correspondeTextoFerramentasConstrucao(prod)) {
-    const n = normalizeCategoria(prod);
-    if (n.includes("ferrament") || n.includes("ferragista")) return false;
-    return (
-      n.includes("construc") ||
-      n.includes("construç") ||
-      n.includes("obra") ||
-      n.includes("cimento")
-    );
   }
 
   return false;
@@ -94,11 +94,14 @@ const CATEGORIA_QUERY_LEGACY: Record<string, string> = {
   Cosméticos: "Cosméticos/Produtos de beleza",
   Escritório: "Escritório/Escola",
   Escola: "Escritório/Escola",
-  "Casa/Jardim": "Casa",
-  Decoração: "Casa",
-  Festas: "Casa",
+  "Casa/Jardim": "Casa/Decoração",
+  Casa: "Casa/Decoração",
+  Decoração: "Casa/Decoração",
+  Festas: "festas",
   Pet: "pet shop",
-  Ferragista: "Ferramentas/Ferragista",
+  Ferragista: "Ferramentas/ Ferragista/ Construção",
+  Construção: "Ferramentas/ Ferragista/ Construção",
+  "Ferramentas/Ferragista": "Ferramentas/ Ferragista/ Construção",
   Eletrônicos: "Tecnologia/eletrônicos",
   Outros: "Outros",
 };

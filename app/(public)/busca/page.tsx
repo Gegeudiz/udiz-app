@@ -111,12 +111,12 @@ function BuscaContent() {
       />
 
       <div className="w-full min-w-0 max-w-full box-border pt-36 pb-24 md:pb-10 px-4 sm:px-5 md:px-8 md:pt-32 lg:pt-36">
-        <div className="max-w-6xl mx-auto w-full min-w-0">
+        <div className="max-w-6xl mx-auto w-full min-w-0 md:mt-8">
           <h1 className="text-2xl font-bold text-gray-900 mb-2 scroll-mt-32">
             {categoria ? `Buscar em: ${categoria}` : "Buscar produtos"}
           </h1>
           <p className="text-sm text-gray-600 mb-6">
-            Veja onde encontrar perto de você (dados das lojas cadastradas no Udiz Estoque).
+            Veja onde encontrar perto de você. Informações dos produtos, dados das lojas cadastradas no Udiz e muito mais.
           </p>
 
           <div className="bg-white rounded-xl shadow p-4 mb-6 flex flex-col md:flex-row md:flex-wrap gap-3 min-w-0 w-full max-w-full">
