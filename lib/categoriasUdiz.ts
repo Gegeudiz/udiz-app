@@ -3,16 +3,17 @@
  * Valores antigos no banco são mapeados em {@link produtoPassaNoFiltroCategoria}.
  */
 export const CATEGORIAS_UDIZ = [
+  "Autos/ Motos/ Peças e Acessórios",
   "Brinquedos/Jogos",
+  "Elétrica/ Luzes e Led",
   "Esporte/Suplementos",
-  "Cosméticos/Produtos de beleza",
+  "Cosméticos/ Produtos de Beleza/ Perfumaria",
   "joias/semijoias",
   "Escritório/Escola",
   "Casa/ Decoração/ Cosinha/Sala/Quarto",
   "Ferramentas/ Ferragista/ Construção",
   "Tecnologia/ Eletrônicos/ Acessórios",
   "pet shop",
-  "perfumaria",
   "Utilidades/ Mercearia",
   "festas",
   "Outros",
@@ -22,9 +23,17 @@ export type CategoriaUdiz = (typeof CATEGORIAS_UDIZ)[number];
 
 /** Categorias exatas usadas antes da consolidação (produtos já cadastrados). */
 const LEGACY_POR_CATEGORIA: Record<string, readonly string[]> = {
+  "Autos/ Motos/ Peças e Acessórios": ["Autos", "Motos", "Peças e Acessórios"],
   "Brinquedos/Jogos": ["Brinquedos"],
+  "Elétrica/ Luzes e Led": ["Elétrica", "Luzes", "Led", "Iluminação"],
   "Esporte/Suplementos": ["Esporte"],
-  "Cosméticos/Produtos de beleza": ["Cosméticos"],
+  "Cosméticos/ Produtos de Beleza/ Perfumaria": [
+    "Cosméticos",
+    "Cosméticos/Produtos de beleza",
+    "perfumaria",
+    "Perfumaria",
+    "PERFUMARIA",
+  ],
   "joias/semijoias": [],
   "Escritório/Escola": ["Escritório", "Escola"],
   "Casa/ Decoração/ Cosinha/Sala/Quarto": [
@@ -44,7 +53,6 @@ const LEGACY_POR_CATEGORIA: Record<string, readonly string[]> = {
     "Acessórios",
   ],
   "pet shop": ["Pet"],
-  perfumaria: ["Perfumaria", "PERFUMARIA"],
   "Utilidades/ Mercearia": ["mercearia", "Mercearia", "MERCEARIA"],
   festas: ["Festas", "FESTAS"],
   Outros: ["Outros"],
@@ -98,9 +106,20 @@ export function produtoPassaNoFiltroCategoria(
 
 /** Links antigos da busca (?categoria=…) ainda usados em favoritos ou histórico. */
 const CATEGORIA_QUERY_LEGACY: Record<string, string> = {
+  Autos: "Autos/ Motos/ Peças e Acessórios",
+  Motos: "Autos/ Motos/ Peças e Acessórios",
+  "Peças e Acessórios": "Autos/ Motos/ Peças e Acessórios",
   Brinquedos: "Brinquedos/Jogos",
+  Elétrica: "Elétrica/ Luzes e Led",
+  Luzes: "Elétrica/ Luzes e Led",
+  Led: "Elétrica/ Luzes e Led",
+  Iluminação: "Elétrica/ Luzes e Led",
   Esporte: "Esporte/Suplementos",
-  Cosméticos: "Cosméticos/Produtos de beleza",
+  Cosméticos: "Cosméticos/ Produtos de Beleza/ Perfumaria",
+  "Cosméticos/Produtos de beleza": "Cosméticos/ Produtos de Beleza/ Perfumaria",
+  perfumaria: "Cosméticos/ Produtos de Beleza/ Perfumaria",
+  Perfumaria: "Cosméticos/ Produtos de Beleza/ Perfumaria",
+  PERFUMARIA: "Cosméticos/ Produtos de Beleza/ Perfumaria",
   Escritório: "Escritório/Escola",
   Escola: "Escritório/Escola",
   "Casa/Jardim": "Casa/ Decoração/ Cosinha/Sala/Quarto",

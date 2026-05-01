@@ -1,6 +1,7 @@
 import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { resolvePublicAppBaseUrlFromRequest } from "@/lib/appUrl";
+import { checkRateLimit, getClientIp, securityLog } from "@/lib/security/rateLimit";
 
 /**
  * Envia email de recuperação de senha com `redirectTo` calculado no servidor (`resolvePublicAppBaseUrlFromRequest`).
@@ -25,6 +26,50 @@ export async function POST(request: NextRequest) {
     return NextResponse.json({ ok: false, error: "missing_email" }, { status: 400 });
   }
 
+  const ip = getClientIp(request);
+  const ipLimit = checkRateLimit({
+    scope: "forgot_password_ip",
+    actor: ip,
+    limit: 10,
+    windowMs: 60_000,
+  });
+  if (!ipLimit.allowed) {
+    securityLog("rate_limit_blocked", {
+      route: "/api/auth/forgot-password",
+      actorType: "ip",
+      actor: ip,
+    });
+    return NextResponse.json(
+      { ok: false, error: "too_many_requests" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(ipLimit.retryAfterSeconds) },
+      }
+    );
+  }
+
+  const emailActor = email.toLowerCase();
+  const emailLimit = checkRateLimit({
+    scope: "forgot_password_email",
+    actor: emailActor,
+    limit: 3,
+    windowMs: 10 * 60_000,
+  });
+  if (!emailLimit.allowed) {
+    securityLog("rate_limit_blocked", {
+      route: "/api/auth/forgot-password",
+      actorType: "email",
+      actor: emailActor,
+    });
+    return NextResponse.json(
+      { ok: false, error: "too_many_requests" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(emailLimit.retryAfterSeconds) },
+      }
+    );
+  }
+
   const url = process.env.NEXT_PUBLIC_SUPABASE_URL;
   const anon = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
   if (!url || !anon) {
@@ -38,7 +83,14 @@ export async function POST(request: NextRequest) {
   const { error } = await supabase.auth.resetPasswordForEmail(email, { redirectTo });
 
   if (error) {
-    return NextResponse.json({ ok: false, message: error.message }, { status: 400 });
+    securityLog("forgot_password_upstream_error", {
+      route: "/api/auth/forgot-password",
+      code: error.code ?? "unknown",
+      status: error.status ?? "unknown",
+      ip,
+    });
+    // Resposta neutra para não facilitar enumeração de usuário.
+    return NextResponse.json({ ok: true });
   }
 
   return NextResponse.json({ ok: true });

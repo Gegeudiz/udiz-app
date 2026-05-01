@@ -2,6 +2,7 @@ import { createClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 import { montarTextoAdminNovaSolicitacao } from "@/lib/solicitacaoEstoqueAdminText";
 import type { EstoqueSolicitacaoRow } from "@/lib/supabase/estoqueSolicitacao";
+import { checkRateLimit, getClientIp, securityLog } from "@/lib/security/rateLimit";
 
 /**
  * Notifica a equipe (seu WhatsApp via CallMeBot e/ou e-mail) quando alguém envia solicitação.
@@ -14,6 +15,28 @@ import type { EstoqueSolicitacaoRow } from "@/lib/supabase/estoqueSolicitacao";
  * Alternativa: RESEND_API_KEY + ADMIN_NOTIFY_EMAIL + NOTIFY_EMAIL_FROM (ou WELCOME_EMAIL_FROM).
  */
 export async function POST(request: NextRequest) {
+  const ip = getClientIp(request);
+  const ipLimit = checkRateLimit({
+    scope: "notify_solicitacao_ip",
+    actor: ip,
+    limit: 20,
+    windowMs: 60_000,
+  });
+  if (!ipLimit.allowed) {
+    securityLog("rate_limit_blocked", {
+      route: "/api/notify/solicitacao-estoque",
+      actorType: "ip",
+      actor: ip,
+    });
+    return NextResponse.json(
+      { ok: false, error: "too_many_requests" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(ipLimit.retryAfterSeconds) },
+      }
+    );
+  }
+
   const authHeader = request.headers.get("authorization");
   const token = authHeader?.startsWith("Bearer ") ? authHeader.slice(7).trim() : "";
   if (!token) {
@@ -43,7 +66,33 @@ export async function POST(request: NextRequest) {
     error: userErr,
   } = await supabase.auth.getUser(token);
   if (userErr || !user?.id) {
+    securityLog("invalid_session_token", {
+      route: "/api/notify/solicitacao-estoque",
+      ip,
+    });
     return NextResponse.json({ ok: false, error: "invalid_session" }, { status: 401 });
+  }
+
+  const userLimit = checkRateLimit({
+    scope: "notify_solicitacao_user",
+    actor: user.id,
+    limit: 8,
+    windowMs: 60_000,
+  });
+  if (!userLimit.allowed) {
+    securityLog("rate_limit_blocked", {
+      route: "/api/notify/solicitacao-estoque",
+      actorType: "user_id",
+      actor: user.id,
+      ip,
+    });
+    return NextResponse.json(
+      { ok: false, error: "too_many_requests" },
+      {
+        status: 429,
+        headers: { "Retry-After": String(userLimit.retryAfterSeconds) },
+      }
+    );
   }
 
   const { data: row, error: rowErr } = await supabase
@@ -54,6 +103,12 @@ export async function POST(request: NextRequest) {
     .maybeSingle();
 
   if (rowErr || !row) {
+    securityLog("notify_forbidden_or_not_found", {
+      route: "/api/notify/solicitacao-estoque",
+      userId: user.id,
+      solicitacaoId,
+      ip,
+    });
     return NextResponse.json({ ok: false, error: "not_found_or_forbidden" }, { status: 403 });
   }
 
