@@ -46,6 +46,7 @@ export async function remoteSaveUsuarioPerfil(input: {
     nome: input.nome.trim(),
     bio: input.bio.trim(),
     foto,
+    role: userRepo.read()?.role ?? "user",
   });
   if (!saved.ok) return { ok: false, message: saved.message };
   return { ok: true, user: saved.data };

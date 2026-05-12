@@ -22,7 +22,7 @@ export async function syncUserFromSupabaseSession(): Promise<Usuario | null> {
   const uid = session.user.id;
   const { data: row } = await supabase
     .from("usuarios")
-    .select("nome, foto, bio")
+    .select("nome, foto, bio, role")
     .eq("id", uid)
     .maybeSingle();
 
@@ -38,6 +38,7 @@ export async function syncUserFromSupabaseSession(): Promise<Usuario | null> {
     nome,
     foto: row?.foto ?? null,
     bio: typeof row?.bio === "string" ? row.bio : "",
+    role: row?.role === "admin" || row?.role === "super_admin" || row?.role === "user" ? row.role : "user",
   };
   const saved = userRepo.write(u);
   if (!saved.ok) return null;

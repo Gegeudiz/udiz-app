@@ -1,8 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { getUdizWhatsappSuporteDigits } from "@/lib/udizWhatsApp";
+
+const TEXTO_REIVINDICAR_LOJA =
+  "Olá. Vi que a minha loja foi adicionada no Udiz e quero Reivindicar o Perfil dela para que eu possa editar as informações e vender ainda mais através do Udiz.";
 
 export default function Footer() {
+  const whatsappHref = `https://wa.me/${getUdizWhatsappSuporteDigits()}?text=${encodeURIComponent(TEXTO_REIVINDICAR_LOJA)}`;
+
   return (
     <footer className="bg-slate-800 text-gray-300 mt-0">
 
@@ -55,6 +61,19 @@ export default function Footer() {
           </ul>
         </div>
 
+      </div>
+
+      <div className="border-t border-gray-700">
+        <div className="max-w-6xl mx-auto px-6 py-4 text-center">
+          <a
+            href={whatsappHref}
+            target="_blank"
+            rel="noopener noreferrer"
+            className="inline-flex items-center justify-center rounded-md bg-orange-500 px-4 py-2 text-sm font-semibold text-white transition-colors hover:bg-orange-600"
+          >
+            Viu sua Loja no Udiz? Reivindique AQUI o Perfil da sua Loja!
+          </a>
+        </div>
       </div>
 
       {/* LINHA FINAL */}

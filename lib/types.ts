@@ -41,6 +41,7 @@ export type Usuario = {
   created_at?: string;
   updated_at?: string;
   nome: string;
+  role?: "user" | "admin" | "super_admin";
   /** Data URL ou URL da foto de perfil (localStorage). */
   foto?: string | null;
   /** Frase curta opcional no perfil. */

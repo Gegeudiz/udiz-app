@@ -231,6 +231,68 @@ export async function remoteCreateProduto(
   return validateSchema(produtoSchema, p, "Dados do produto inválidos");
 }
 
+/**
+ * Cria uma cópia do produto em outra loja do mesmo dono (mesmo `owner_id`).
+ * Não permite copiar para a mesma loja nem para lojas de outro utilizador.
+ */
+export async function remoteDuplicateProdutoParaLoja(args: {
+  produtoId: string;
+  lojaOrigemId: string;
+  lojaDestinoId: string;
+}): Promise<ValidationResult<Produto>> {
+  const ctx = await requireSupabaseSession();
+  if ("error" in ctx) return { ok: false, message: ctx.error };
+
+  const { produtoId, lojaOrigemId, lojaDestinoId } = args;
+  if (lojaOrigemId === lojaDestinoId) {
+    return { ok: false, message: "A loja de destino deve ser diferente da loja de origem." };
+  }
+
+  const { data: lojaOrigem, error: eOrig } = await ctx.supabase
+    .from("lojas")
+    .select("id")
+    .eq("id", lojaOrigemId)
+    .eq("owner_id", ctx.userId)
+    .maybeSingle();
+  if (eOrig) return { ok: false, message: eOrig.message };
+  if (!lojaOrigem) {
+    return { ok: false, message: "Loja de origem não encontrada ou não pertence à sua conta." };
+  }
+
+  const { data: lojaDestino, error: eDest } = await ctx.supabase
+    .from("lojas")
+    .select("id")
+    .eq("id", lojaDestinoId)
+    .eq("owner_id", ctx.userId)
+    .maybeSingle();
+  if (eDest) return { ok: false, message: eDest.message };
+  if (!lojaDestino) {
+    return { ok: false, message: "Loja de destino não encontrada ou não pertence à sua conta." };
+  }
+
+  const { data: row, error: eProd } = await ctx.supabase
+    .from("produtos")
+    .select("*")
+    .eq("id", produtoId)
+    .eq("loja_id", lojaOrigemId)
+    .maybeSingle();
+  if (eProd) return { ok: false, message: eProd.message };
+  if (!row) {
+    return { ok: false, message: "Produto não encontrado nesta loja." };
+  }
+
+  const src = mapProduto(row as ProdutoRow);
+  return remoteCreateProduto({
+    loja_id: lojaDestinoId,
+    nome: src.nome,
+    preco: Number(src.preco),
+    categoria: src.categoria,
+    descricao: src.descricao,
+    imagem: src.imagem,
+    imagemFile: null,
+  });
+}
+
 export async function remoteUpdateProduto(
   produtoId: string,
   lojaId: string,

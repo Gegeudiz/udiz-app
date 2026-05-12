@@ -3,7 +3,7 @@
 import { useRef, useState } from "react";
 import { useRouter } from "next/navigation";
 import { fileToDataUrl, optimizeImageForUpload, validateImageFile } from "@/lib/files";
-import { montarEnderecoParaGoogleMaps } from "@/lib/enderecoLoja";
+import { extrairEnderecoGoogleMaps, montarEnderecoParaGoogleMaps } from "@/lib/enderecoLoja";
 import { getDataProvider } from "@/lib/repositories/provider";
 import { lojaRepo } from "@/lib/repositories/localDb";
 import { mensagemErroApiParaUsuario } from "@/lib/mensagemErroApi";
@@ -17,6 +17,7 @@ export default function CriarLoja() {
   const fotoCameraInputRef = useRef<HTMLInputElement>(null);
 
   const [nome, setNome] = useState("");
+  const [enderecoGoogleMaps, setEnderecoGoogleMaps] = useState("");
   const [cidade, setCidade] = useState("");
   const [bairro, setBairro] = useState("");
   const [logradouro, setLogradouro] = useState("");
@@ -27,6 +28,20 @@ export default function CriarLoja() {
   const [imagem, setImagem] = useState<string | null>(null);
   const [imagemFile, setImagemFile] = useState<File | null>(null);
   const [erro, setErro] = useState("");
+
+  const preencherEnderecoDoMaps = () => {
+    const extraido = extrairEnderecoGoogleMaps(enderecoGoogleMaps);
+    if (!extraido) {
+      setErro("Não foi possível extrair o endereço. Confira o texto copiado do Google Maps.");
+      return;
+    }
+    setCidade(extraido.cidade);
+    setBairro(extraido.bairro);
+    setLogradouro(extraido.logradouro);
+    setNumero(extraido.numero);
+    setComplemento(extraido.complemento);
+    setErro("");
+  };
 
   const handleSubmit = async () => {
     const usuario = readUsuario();
@@ -130,9 +145,25 @@ export default function CriarLoja() {
 
       <p className="text-sm font-semibold text-gray-800 mb-2">Endereço</p>
       <p className="text-xs text-gray-500 mb-3">
-        Usamos estes dados para montar o endereço completo no Google Maps ao cliente tocar em &quot;Ir até à
-        loja&quot;. Na ficha do produto só aparecem bairro e cidade.
+        Usamos estes dados para montar o seu endereço completo no Google Maps e o seu futuro cliente
+        encontrar o local exato da sua loja a partir do Udiz.
       </p>
+      <label className="block text-xs font-medium text-gray-600 mb-1">
+        Endereço copiado do Google Maps (opcional)
+      </label>
+      <textarea
+        placeholder="Cole aqui o endereço do Google Maps e clique em Preencher endereço"
+        value={enderecoGoogleMaps}
+        onChange={(e) => setEnderecoGoogleMaps(e.target.value)}
+        className="w-full mb-2 p-2 border border-gray-300 rounded-lg min-h-[72px] text-gray-900"
+      />
+      <button
+        type="button"
+        onClick={preencherEnderecoDoMaps}
+        className="mb-3 inline-flex items-center justify-center rounded-lg border border-orange-300 px-3 py-2 text-xs font-semibold text-orange-700 hover:bg-orange-50"
+      >
+        Preencher endereço a partir do Google Maps
+      </button>
 
       <label className="block text-xs font-medium text-gray-600 mb-1">Cidade</label>
       <input

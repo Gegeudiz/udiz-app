@@ -1,12 +1,15 @@
 "use client";
 
 import { useState } from "react";
+import { useRouter } from "next/navigation";
+import { isAdminUser } from "@/lib/authz";
 import type { Usuario } from "@/lib/types";
 import { getDataProvider } from "@/lib/repositories/provider";
 import { requestBoasVindasEmail } from "@/lib/emails/requestBoasVindas";
 import {
   sendPasswordResetEmail,
   signInWithEmailPassword,
+  signOutSupabase,
   signUpWithEmailPassword,
 } from "@/lib/supabase/authSession";
 import { trackEvent } from "@/lib/telemetry";
@@ -19,7 +22,8 @@ type Props = {
 };
 
 export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
-  const [modo, setModo] = useState<"login" | "cadastro" | "esqueci">("login");
+  const router = useRouter();
+  const [modo, setModo] = useState<"login" | "cadastro" | "esqueci" | "admin">("login");
   const [nome, setNome] = useState("");
   const [loginEmail, setLoginEmail] = useState("");
   const [loginSenha, setLoginSenha] = useState("");
@@ -75,6 +79,30 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
     fechar();
   };
 
+  const submitAdminLoginSupabase = async () => {
+    setErroForm("");
+    if (!loginEmail.trim() || !loginSenha) {
+      setErroForm("Informe email e senha.");
+      return;
+    }
+    setCarregando(true);
+    const r = await signInWithEmailPassword(loginEmail, loginSenha);
+    setCarregando(false);
+    if (!r.ok) {
+      setErroForm(r.message);
+      return;
+    }
+    if (!isAdminUser(r.user)) {
+      await signOutSupabase();
+      setErroForm("Acesso administrativo permitido apenas para contas admin ou super_admin.");
+      return;
+    }
+    handleLogin(r.user);
+    resetCampos();
+    fechar();
+    router.push("/admin/transferencia-lojas");
+  };
+
   const submitEsqueciSenha = async () => {
     setErroForm("");
     setResetEnviado(false);
@@ -126,6 +154,8 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
         <h2 className="text-2xl font-bold mb-1 text-center text-gray-900">
           {modo === "login"
             ? "Entrar na sua conta"
+            : modo === "admin"
+              ? "Entrar como Administrador"
             : modo === "cadastro"
               ? "Criar sua conta"
               : "Esqueci a senha"}
@@ -133,6 +163,8 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
         <p className="text-sm text-gray-600 text-center mb-5">
           {modo === "esqueci"
             ? "Informe o email cadastrado. Se existir uma conta, você receberá um link para criar uma nova senha."
+            : modo === "admin"
+              ? "Acesso restrito para contas com perfil admin ou super_admin."
             : usarSupabase
               ? modo === "login"
                 ? "Coloque o seu email e senha cadastrados ou então crie uma conta para cadastrar seu Perfil no Udiz."
@@ -181,7 +213,7 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
           </div>
         ) : null}
 
-        {modo === "login" ? (
+        {modo === "login" || modo === "admin" ? (
           <>
             <input
               type="email"
@@ -231,7 +263,7 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
               </button>
             </div>
 
-            {usarSupabase ? (
+            {usarSupabase && modo === "login" ? (
               <button
                 type="button"
                 onClick={() => {
@@ -252,10 +284,12 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
               <button
                 type="button"
                 disabled={carregando}
-                onClick={() => void submitLoginSupabase()}
+                onClick={() =>
+                  void (modo === "admin" ? submitAdminLoginSupabase() : submitLoginSupabase())
+                }
                 className="w-full bg-purple-600 text-white font-semibold py-2.5 rounded-md mb-2 hover:bg-purple-700 transition-colors disabled:opacity-60"
               >
-                {carregando ? "Entrando..." : "Entrar"}
+                {carregando ? "Entrando..." : modo === "admin" ? "Entrar no Admin" : "Entrar"}
               </button>
             ) : (
               <button
@@ -385,17 +419,45 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
         )}
 
         {modo === "login" ? (
+          <>
+            <p className="text-sm text-center mt-4 text-gray-600">
+              Não tem conta?{" "}
+              <button
+                type="button"
+                onClick={() => {
+                  setModo("cadastro");
+                  setErroForm("");
+                }}
+                className="text-purple-700 font-semibold hover:underline"
+              >
+                Criar conta
+              </button>
+            </p>
+            <p className="text-sm text-center mt-2 text-gray-600">
+              <button
+                type="button"
+                onClick={() => {
+                  setModo("admin");
+                  setErroForm("");
+                }}
+                className="font-semibold text-orange-600 hover:underline hover:text-orange-700"
+              >
+                Entrar como Administrador
+              </button>
+            </p>
+          </>
+        ) : modo === "admin" ? (
           <p className="text-sm text-center mt-4 text-gray-600">
-            Não tem conta?{" "}
+            Voltar para{" "}
             <button
               type="button"
               onClick={() => {
-                setModo("cadastro");
+                setModo("login");
                 setErroForm("");
               }}
               className="text-purple-700 font-semibold hover:underline"
             >
-              Criar conta
+              Entrar na sua conta
             </button>
           </p>
         ) : modo === "esqueci" ? null : (

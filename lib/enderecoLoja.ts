@@ -21,6 +21,74 @@ export function montarEnderecoParaGoogleMaps(p: {
   return parts.join(", ");
 }
 
+export type EnderecoExtraidoGoogleMaps = {
+  cidade: string;
+  bairro: string;
+  logradouro: string;
+  numero: string;
+  complemento: string;
+};
+
+/** Tenta extrair campos estruturados a partir de um endereço copiado do Google Maps. */
+export function extrairEnderecoGoogleMaps(raw: string): EnderecoExtraidoGoogleMaps | null {
+  const texto = raw.replace(/\s+/g, " ").trim();
+  if (!texto) return null;
+
+  const semPais = texto.replace(/,\s*brasil$/i, "").trim();
+  const partes = semPais
+    .split(",")
+    .map((p) => p.trim())
+    .filter(Boolean);
+  if (partes.length === 0) return null;
+
+  const logradouro = partes[0] ?? "";
+  let numero = "";
+  let complemento = "";
+  let bairro = "";
+  let cidade = "";
+
+  const cepRegex = /^\d{5}-?\d{3}$/;
+  const partesSemCep = partes.filter((p) => !cepRegex.test(p));
+
+  const parteCidade = partesSemCep.find((p) => /\s-\s[A-Z]{2}\b/.test(p)) ?? "";
+  cidade = parteCidade ? parteCidade.split(/\s-\s[A-Z]{2}\b/)[0].trim() : "";
+
+  if (partesSemCep.length >= 2) {
+    const parteNumero = partesSemCep[1] ?? "";
+    const pedacos = parteNumero
+      .split(" - ")
+      .map((x) => x.trim())
+      .filter(Boolean);
+    numero = pedacos[0] ?? "";
+    if (pedacos.length >= 2) {
+      bairro = pedacos[pedacos.length - 1] ?? "";
+      const comp = pedacos.slice(1, -1).join(" - ").trim();
+      complemento = comp;
+    }
+  }
+
+  if (!cidade && partesSemCep.length >= 2) {
+    const penultima = partesSemCep[partesSemCep.length - 1] ?? "";
+    cidade = penultima.split(" - ")[0]?.trim() ?? "";
+  }
+
+  // fallback: se não conseguiu número pelo 2º bloco, tenta achar no logradouro.
+  if (!numero) {
+    const m = logradouro.match(/\b(\d+[A-Za-z0-9/-]*|S\/N|SN)\b/i);
+    if (m?.[1]) numero = m[1];
+  }
+
+  if (!logradouro || !numero || !cidade) return null;
+
+  return {
+    cidade,
+    bairro,
+    logradouro,
+    numero,
+    complemento,
+  };
+}
+
 /** Texto curto na ficha do produto / cards: bairro e cidade (sem rua/número). */
 export function rotuloLocalPublicoLoja(loja: Loja | null | undefined): string {
   if (!loja) return "";

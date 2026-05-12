@@ -3,7 +3,11 @@
 import { Suspense, useCallback, useEffect, useRef, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { fileToDataUrl, optimizeImageForUpload, validateImageFile } from "@/lib/files";
-import { montarEnderecoParaGoogleMaps, rotuloLocalPublicoLoja } from "@/lib/enderecoLoja";
+import {
+  extrairEnderecoGoogleMaps,
+  montarEnderecoParaGoogleMaps,
+  rotuloLocalPublicoLoja,
+} from "@/lib/enderecoLoja";
 import type { Loja, Produto } from "@/lib/types";
 import { canEditLoja } from "@/lib/authz";
 import { findLojaById, getLojasFromStorage, getProdutosFromStorage } from "@/lib/catalogo";
@@ -14,7 +18,9 @@ import {
   remoteCreateProduto,
   remoteDeleteLoja,
   remoteDeleteProduto,
+  remoteDuplicateProdutoParaLoja,
   remoteGetLojaDoDono,
+  remoteListMinhasLojas,
   remoteListProdutosDaLoja,
   remoteUpdateLoja,
   remoteUpdateProduto,
@@ -50,6 +56,7 @@ function MinhaLojaContent() {
 
   const [modalLojaAberto, setModalLojaAberto] = useState(false);
   const [lojaNome, setLojaNome] = useState("");
+  const [lojaEnderecoGoogleMaps, setLojaEnderecoGoogleMaps] = useState("");
   const [lojaCidade, setLojaCidade] = useState("");
   const [lojaBairro, setLojaBairro] = useState("");
   const [lojaLogradouro, setLojaLogradouro] = useState("");
@@ -72,14 +79,23 @@ function MinhaLojaContent() {
   >(null);
   const [excluindo, setExcluindo] = useState(false);
 
+  /** Lojas do utilizador logado (para decidir se mostra duplicar entre lojas). */
+  const [minhasLojas, setMinhasLojas] = useState<Loja[]>([]);
+  const [duplicarModalProduto, setDuplicarModalProduto] = useState<Produto | null>(null);
+  const [lojaDestinoDuplicarId, setLojaDestinoDuplicarId] = useState("");
+  const [duplicandoProduto, setDuplicandoProduto] = useState(false);
+
   const recarregar = useCallback(() => {
     const usuario = readUsuario();
     if (!usuario || !lojaId) {
       setLoja(null);
+      setMinhasLojas([]);
       return;
     }
     void (async () => {
       if (getDataProvider() === "supabase") {
+        const todasMinhas = await remoteListMinhasLojas();
+        setMinhasLojas(todasMinhas);
         const l = await remoteGetLojaDoDono(lojaId);
         if (!l || !canEditLoja(usuario, l)) {
           setLoja(null);
@@ -90,7 +106,8 @@ function MinhaLojaContent() {
         setProdutos(lista);
         return;
       }
-      const lojas = getLojasFromStorage();
+      const lojas = getLojasFromStorage().filter((lo) => lo.ownerId === usuario.id);
+      setMinhasLojas(lojas);
       const l = findLojaById(lojas, lojaId);
       if (!l || !canEditLoja(usuario, l)) {
         setLoja(null);
@@ -111,6 +128,7 @@ function MinhaLojaContent() {
     if (!loja) return;
     setErro("");
     setLojaNome(loja.nome);
+    setLojaEnderecoGoogleMaps("");
     setLojaCidade(loja.cidade ?? "");
     setLojaBairro(loja.bairro ?? "");
     setLojaLogradouro(loja.logradouro ?? "");
@@ -121,6 +139,20 @@ function MinhaLojaContent() {
     setLojaImagemFile(null);
     setLojaImagemPreview(loja.imagem);
     setModalLojaAberto(true);
+  };
+
+  const preencherEnderecoLojaDoMaps = () => {
+    const extraido = extrairEnderecoGoogleMaps(lojaEnderecoGoogleMaps);
+    if (!extraido) {
+      setErro("Não foi possível extrair o endereço. Confira o texto copiado do Google Maps.");
+      return;
+    }
+    setLojaCidade(extraido.cidade);
+    setLojaBairro(extraido.bairro);
+    setLojaLogradouro(extraido.logradouro);
+    setLojaNumero(extraido.numero);
+    setLojaComplemento(extraido.complemento);
+    setErro("");
   };
 
   const salvarLoja = async () => {
@@ -236,6 +268,7 @@ function MinhaLojaContent() {
     setErro("");
     setModalLojaAberto(false);
     setLojaNome("");
+    setLojaEnderecoGoogleMaps("");
     setLojaCidade("");
     setLojaBairro("");
     setLojaLogradouro("");
@@ -380,6 +413,76 @@ function MinhaLojaContent() {
     }
   };
 
+  const mostrarDuplicarEntreLojas = minhasLojas.length > 1;
+
+  const abrirModalDuplicarProduto = (p: Produto) => {
+    setErro("");
+    const opcoes = minhasLojas.filter((l) => l.id !== lojaId);
+    const primeira = opcoes[0];
+    if (!primeira) return;
+    setDuplicarModalProduto(p);
+    setLojaDestinoDuplicarId(primeira.id);
+  };
+
+  const fecharModalDuplicarProduto = () => {
+    if (duplicandoProduto) return;
+    setErro("");
+    setDuplicarModalProduto(null);
+    setLojaDestinoDuplicarId("");
+  };
+
+  const confirmarDuplicarProduto = async () => {
+    if (!duplicarModalProduto || !loja || duplicandoProduto) return;
+    const usuario = readUsuario();
+    if (!usuario || !canEditLoja(usuario, loja)) return;
+
+    const destLoja = minhasLojas.find((l) => l.id === lojaDestinoDuplicarId);
+    if (!destLoja || !canEditLoja(usuario, destLoja) || lojaDestinoDuplicarId === lojaId) {
+      setErro("Escolha uma loja de destino que seja sua e diferente desta.");
+      return;
+    }
+
+    setDuplicandoProduto(true);
+    setErro("");
+    try {
+      const result =
+        getDataProvider() === "supabase"
+          ? await remoteDuplicateProdutoParaLoja({
+              produtoId: duplicarModalProduto.id,
+              lojaOrigemId: lojaId,
+              lojaDestinoId: lojaDestinoDuplicarId,
+            })
+          : produtoRepo.create({
+              nome: duplicarModalProduto.nome,
+              preco: Number(duplicarModalProduto.preco),
+              categoria: duplicarModalProduto.categoria,
+              loja_id: lojaDestinoDuplicarId,
+              descricao: duplicarModalProduto.descricao,
+              imagem: duplicarModalProduto.imagem,
+            });
+      if (!result.ok) {
+        setErro(mensagemErroApiParaUsuario(result.message));
+        return;
+      }
+      trackEvent("estoque_produto_duplicado", {
+        userId: usuario.id,
+        lojaOrigemId: lojaId,
+        lojaDestinoId: lojaDestinoDuplicarId,
+        produtoOrigemId: duplicarModalProduto.id,
+        produtoNovoId: result.data.id,
+        destinoLojaNome: destLoja.nome,
+      });
+      if (typeof window !== "undefined") {
+        window.dispatchEvent(new CustomEvent("udiz:catalogo-atualizado"));
+      }
+      setSucesso(`Produto enviado para "${destLoja.nome}".`);
+      setDuplicarModalProduto(null);
+      setLojaDestinoDuplicarId("");
+    } finally {
+      setDuplicandoProduto(false);
+    }
+  };
+
   const handleFotoProduto = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     e.target.value = "";
@@ -425,7 +528,7 @@ function MinhaLojaContent() {
       >
         ← Voltar às lojas
       </button>
-      {erro && !modalLojaAberto && !modalProdutoAberto && !excluirDialog ? (
+      {erro && !modalLojaAberto && !modalProdutoAberto && !excluirDialog && !duplicarModalProduto ? (
         <p role="alert" className="mb-3 rounded-lg border border-red-200 bg-red-50 p-3 text-sm text-red-800">
           {erro}
         </p>
@@ -502,6 +605,15 @@ function MinhaLojaContent() {
                 >
                   Editar
                 </button>
+                {mostrarDuplicarEntreLojas ? (
+                  <button
+                    type="button"
+                    onClick={() => abrirModalDuplicarProduto(p)}
+                    className="text-xs font-semibold text-purple-700 hover:underline text-left"
+                  >
+                    Enviar para outra Loja
+                  </button>
+                ) : null}
                 <button
                   type="button"
                   onClick={() => setExcluirDialog({ tipo: "produto", id: p.id, nome: p.nome })}
@@ -538,6 +650,19 @@ function MinhaLojaContent() {
               className="w-full border border-gray-300 rounded-lg p-2 mb-2 text-gray-900"
             />
             <p className="text-xs font-semibold text-gray-700 mt-2 mb-1">Endereço</p>
+            <textarea
+              placeholder="Cole o endereço do Google Maps e clique em Preencher endereço"
+              value={lojaEnderecoGoogleMaps}
+              onChange={(e) => setLojaEnderecoGoogleMaps(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2 mb-2 min-h-[72px] text-gray-900"
+            />
+            <button
+              type="button"
+              onClick={preencherEnderecoLojaDoMaps}
+              className="mb-2 inline-flex items-center justify-center rounded-lg border border-orange-300 px-3 py-2 text-xs font-semibold text-orange-700 hover:bg-orange-50"
+            >
+              Preencher endereço a partir do Google Maps
+            </button>
             <input
               placeholder="Cidade"
               value={lojaCidade}
@@ -690,6 +815,62 @@ function MinhaLojaContent() {
         onConfirmar={() => void confirmarExclusao()}
         carregando={excluindo}
       />
+
+      {duplicarModalProduto ? (
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50">
+          <div className="bg-white rounded-xl max-w-md w-full p-6 shadow-xl">
+            <h3 className="text-lg font-bold text-gray-900 mb-2">Enviar produto para outra loja</h3>
+            <p className="text-sm text-gray-600 mb-4">
+              Será criada uma cópia de{" "}
+              <strong className="text-gray-900">{duplicarModalProduto.nome}</strong> na loja de destino. Preço,
+              categoria, descrição e imagem seguem iguais.
+            </p>
+            {erro ? (
+              <p
+                role="alert"
+                className="mb-3 rounded-lg border border-red-200 bg-red-50 px-3 py-2 text-sm text-red-800"
+              >
+                {erro}
+              </p>
+            ) : null}
+            <label htmlFor="udiz-destino-duplicar" className="block text-sm font-semibold text-gray-800 mb-1">
+              Loja de destino
+            </label>
+            <select
+              id="udiz-destino-duplicar"
+              value={lojaDestinoDuplicarId}
+              onChange={(e) => setLojaDestinoDuplicarId(e.target.value)}
+              className="w-full border border-gray-300 rounded-lg p-2 mb-4 text-gray-900"
+            >
+              {minhasLojas
+                .filter((l) => l.id !== lojaId)
+                .map((l) => (
+                  <option key={l.id} value={l.id}>
+                    {l.nome}
+                  </option>
+                ))}
+            </select>
+            <div className="flex gap-2">
+              <button
+                type="button"
+                onClick={() => void confirmarDuplicarProduto()}
+                disabled={duplicandoProduto || !lojaDestinoDuplicarId}
+                className="flex-1 bg-purple-600 text-white py-2 rounded-lg font-semibold hover:bg-purple-700 disabled:opacity-50"
+              >
+                {duplicandoProduto ? "Enviando…" : "Enviar"}
+              </button>
+              <button
+                type="button"
+                onClick={fecharModalDuplicarProduto}
+                disabled={duplicandoProduto}
+                className="px-4 py-2 text-gray-600 border border-gray-300 rounded-lg"
+              >
+                Cancelar
+              </button>
+            </div>
+          </div>
+        </div>
+      ) : null}
 
       {modalProdutoAberto && (
         <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-black/50">

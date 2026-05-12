@@ -99,6 +99,10 @@ export const userRepo = {
       nome: String(raw.nome ?? "").trim(),
       foto: raw.foto ?? null,
       bio: typeof raw.bio === "string" ? raw.bio : "",
+      role:
+        raw.role === "admin" || raw.role === "super_admin" || raw.role === "user"
+          ? raw.role
+          : undefined,
       created_at: raw.created_at ?? now,
       updated_at: raw.updated_at ?? now,
     };

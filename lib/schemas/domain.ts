@@ -9,6 +9,7 @@ export const usuarioSchema = z.object({
     .max(80, "O nome pode ter no máximo 80 caracteres."),
   foto: z.string().nullable().optional(),
   bio: z.string().max(200, "A bio pode ter no máximo 200 caracteres.").optional(),
+  role: z.enum(["user", "admin", "super_admin"]).optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 });
