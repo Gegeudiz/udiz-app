@@ -31,6 +31,10 @@ import {
   normalizaParametroCategoriaDaUrl,
   produtoPassaNoFiltroCategoria,
 } from "@/lib/categoriasUdiz";
+import {
+  pontuacaoBuscaProduto,
+  produtoCorrespondeTermoBusca,
+} from "@/lib/buscaProdutos";
 
 function BuscaContent() {
   const router = useRouter();
@@ -79,18 +83,28 @@ function BuscaContent() {
   }, [cidade]);
 
   const filtrados = useMemo(() => {
-    const t = termo.trim().toLowerCase();
-    return produtos.filter((p) => {
-      const loja = findLojaById(lojas, p.loja_id);
-      const matchCidade = !cidade || lojaCorrespondeCidadeFiltrada(loja, cidade);
-      const matchCat = produtoPassaNoFiltroCategoria(p.categoria, categoria);
-      const matchNome =
-        !t ||
-        p.nome.toLowerCase().includes(t) ||
-        p.categoria.toLowerCase().includes(t) ||
-        p.descricao.toLowerCase().includes(t);
-      return matchCidade && matchCat && matchNome;
-    });
+    return produtos
+      .filter((p) => {
+        const loja = findLojaById(lojas, p.loja_id);
+        const matchCidade = !cidade || lojaCorrespondeCidadeFiltrada(loja, cidade);
+        const matchCat = produtoPassaNoFiltroCategoria(p.categoria, categoria);
+        const matchBusca = produtoCorrespondeTermoBusca(
+          { nome: p.nome, categoria: p.categoria, descricao: p.descricao },
+          termo,
+        );
+        return matchCidade && matchCat && matchBusca;
+      })
+      .sort(
+        (a, b) =>
+          pontuacaoBuscaProduto(
+            { nome: b.nome, categoria: b.categoria, descricao: b.descricao },
+            termo,
+          ) -
+          pontuacaoBuscaProduto(
+            { nome: a.nome, categoria: a.categoria, descricao: a.descricao },
+            termo,
+          ),
+      );
   }, [produtos, lojas, termo, categoria, cidade]);
 
   const aplicarFiltros = () => {
