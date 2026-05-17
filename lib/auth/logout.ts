@@ -1,3 +1,4 @@
+import { clearAdminGate } from "@/lib/admin/adminGate";
 import { signOutSupabase } from "@/lib/supabase/authSession";
 import { getDataProvider } from "@/lib/repositories/provider";
 import { userRepo } from "@/lib/repositories/localDb";
@@ -8,4 +9,5 @@ export async function encerrarSessaoApp(): Promise<void> {
     await signOutSupabase();
   }
   userRepo.clear();
+  clearAdminGate();
 }

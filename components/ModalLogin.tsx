@@ -2,6 +2,7 @@
 
 import { useState } from "react";
 import { useRouter } from "next/navigation";
+import { setAdminGate } from "@/lib/admin/adminGate";
 import { isAdminUser } from "@/lib/authz";
 import type { Usuario } from "@/lib/types";
 import { getDataProvider } from "@/lib/repositories/provider";
@@ -98,10 +99,10 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
       return;
     }
     handleLogin(r.user);
+    setAdminGate();
     resetCampos();
     fechar();
-    const destino = `${window.location.origin}/admin`;
-    window.location.assign(destino);
+    window.location.assign(`${window.location.origin}/admin`);
   };
 
   const submitEsqueciSenha = async () => {
