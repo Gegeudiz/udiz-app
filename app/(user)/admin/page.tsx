@@ -152,7 +152,7 @@ export default function AdminDashboardPage() {
           Transfira a titularidade de uma loja entre contas de usuários.
         </p>
         <Link
-          href="/admin/transferencia-lojas"
+          href="/admin/transferencia-lojas?acao=transferir"
           className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-purple-600 px-5 py-3.5 text-center text-sm font-semibold text-white shadow-md shadow-purple-600/25 transition-colors hover:bg-purple-700 sm:w-auto"
         >
           Transferir Loja de uma conta para outra
