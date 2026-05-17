@@ -1,16 +1,6 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  async redirects() {
-    return [
-      {
-        source: "/admin/transferencia-lojas",
-        missing: [{ type: "query", key: "acao" }],
-        destination: "/admin",
-        permanent: false,
-      },
-    ];
-  },
   async headers() {
     const csp = [
       "default-src 'self'",

@@ -100,7 +100,8 @@ export default function ModalLogin({ aberto, fechar, onLogin }: Props) {
     handleLogin(r.user);
     resetCampos();
     fechar();
-    router.push("/admin");
+    const destino = `${window.location.origin}/admin`;
+    window.location.assign(destino);
   };
 
   const submitEsqueciSenha = async () => {
