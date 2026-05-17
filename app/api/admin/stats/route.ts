@@ -1,4 +1,4 @@
-import { createClient } from "@supabase/supabase-js";
+import { createClient, type SupabaseClient } from "@supabase/supabase-js";
 import { NextRequest, NextResponse } from "next/server";
 
 function isAdminRole(role: string | null | undefined): boolean {
@@ -6,7 +6,7 @@ function isAdminRole(role: string | null | undefined): boolean {
 }
 
 async function contar(
-  client: ReturnType<typeof createClient>,
+  client: SupabaseClient,
   tabela: "lojas" | "produtos" | "usuarios",
 ): Promise<number> {
   const { count, error } = await client.from(tabela).select("*", { count: "exact", head: true });
