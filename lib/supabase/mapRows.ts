@@ -25,6 +25,7 @@ export type ProdutoRow = {
   categoria: string;
   descricao: string;
   imagem: string | null;
+  em_destaque?: boolean | null;
   created_at: string;
   updated_at: string;
 };
@@ -59,6 +60,7 @@ export function mapProduto(row: ProdutoRow): Produto {
     loja_id: row.loja_id,
     descricao: row.descricao ?? "",
     imagem: row.imagem,
+    em_destaque: Boolean(row.em_destaque),
     created_at: row.created_at,
     updated_at: row.updated_at,
   };

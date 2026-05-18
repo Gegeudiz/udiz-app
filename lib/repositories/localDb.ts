@@ -82,6 +82,7 @@ function hydrateProduto(item: Partial<Produto>): Produto | null {
     loja_id: lojaIdRaw || "",
     descricao: String(item.descricao ?? "").trim(),
     imagem: item.imagem ?? null,
+    em_destaque: Boolean(item.em_destaque),
     created_at: item.created_at ?? now,
     updated_at: item.updated_at ?? item.created_at ?? now,
   };

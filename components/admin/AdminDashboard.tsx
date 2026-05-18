@@ -146,17 +146,32 @@ export default function AdminDashboard() {
         ))}
       </section>
 
-      <section className="mt-8 rounded-2xl border border-dashed border-purple-200 bg-purple-50/50 p-5">
-        <h2 className="text-sm font-semibold text-purple-900">Ações administrativas</h2>
-        <p className="mt-1 text-sm text-purple-800/80">
-          Transfira a titularidade de uma loja entre contas de usuários.
-        </p>
-        <Link
-          href="/admin/transferencia-lojas?acao=transferir"
-          className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-purple-600 px-5 py-3.5 text-center text-sm font-semibold text-white shadow-md shadow-purple-600/25 transition-colors hover:bg-purple-700 sm:w-auto"
-        >
-          Transferir Loja de uma conta para outra
-        </Link>
+      <section className="mt-8 space-y-4">
+        <div className="rounded-2xl border border-dashed border-purple-200 bg-purple-50/50 p-5">
+          <h2 className="text-sm font-semibold text-purple-900">Destaques na página inicial</h2>
+          <p className="mt-1 text-sm text-purple-800/80">
+            Escolha quais produtos aparecem em &quot;Produtos em Destaque&quot; em cada cidade.
+          </p>
+          <Link
+            href="/admin/destaques"
+            className="mt-4 inline-flex w-full items-center justify-center rounded-xl bg-purple-600 px-5 py-3.5 text-center text-sm font-semibold text-white shadow-md shadow-purple-600/25 transition-colors hover:bg-purple-700 sm:w-auto"
+          >
+            Gerir produtos em destaque
+          </Link>
+        </div>
+
+        <div className="rounded-2xl border border-dashed border-purple-200 bg-purple-50/50 p-5">
+          <h2 className="text-sm font-semibold text-purple-900">Transferência de loja</h2>
+          <p className="mt-1 text-sm text-purple-800/80">
+            Transfira a titularidade de uma loja entre contas de usuários.
+          </p>
+          <Link
+            href="/admin/transferencia-lojas?acao=transferir"
+            className="mt-4 inline-flex w-full items-center justify-center rounded-xl border border-purple-300 bg-white px-5 py-3.5 text-center text-sm font-semibold text-purple-700 transition-colors hover:bg-purple-50 sm:w-auto"
+          >
+            Transferir Loja de uma conta para outra
+          </Link>
+        </div>
       </section>
     </AdminShell>
   );

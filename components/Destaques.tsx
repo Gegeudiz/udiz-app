@@ -41,10 +41,17 @@ export default function Destaques({ usuario, onPrecisaLogin }: Props) {
 
   const itens = useMemo(() => {
     if (!montado || loading) return [];
-    const filtradosPorCidade = produtos.filter((p) => {
-      const loja = findLojaById(lojas, p.loja_id);
-      return lojaCorrespondeCidadeFiltrada(loja, cidadeSelecionada);
-    });
+    const filtradosPorCidade = produtos
+      .filter((p) => Boolean(p.em_destaque))
+      .filter((p) => {
+        const loja = findLojaById(lojas, p.loja_id);
+        return lojaCorrespondeCidadeFiltrada(loja, cidadeSelecionada);
+      })
+      .sort((a, b) => {
+        const ta = a.updated_at ?? a.created_at ?? "";
+        const tb = b.updated_at ?? b.created_at ?? "";
+        return tb.localeCompare(ta);
+      });
     const slice = filtradosPorCidade.slice(0, 10);
     return slice.map((p) => {
       const loja = findLojaById(lojas, p.loja_id);
@@ -70,8 +77,8 @@ export default function Destaques({ usuario, onPrecisaLogin }: Props) {
         <p className="text-center text-red-600 text-sm max-w-md mx-auto">{error}</p>
       ) : itens.length === 0 ? (
         <p className="text-center text-gray-600 text-sm max-w-md mx-auto">
-          Ainda não há produtos cadastrados. Quando lojistas adicionarem itens no Udiz Estoque, eles
-          aparecerão aqui.{" "}
+          Nenhum produto em destaque para esta cidade. Marque produtos no painel administrativo ou no
+          Supabase (campo em_destaque).{" "}
           <Link href="/busca" className="text-purple-600 font-medium hover:underline">
             Ver busca
           </Link>

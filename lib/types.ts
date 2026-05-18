@@ -34,6 +34,8 @@ export type Produto = {
   loja_id: string;
   descricao: string;
   imagem: string | null;
+  /** Exibir na seção "Produtos em Destaque" da home (cidade da loja). */
+  em_destaque?: boolean;
 };
 
 export type Usuario = {

@@ -62,6 +62,7 @@ export const produtoSchema = z.object({
   loja_id: z.string().min(1, "Loja inválida."),
   descricao: z.string().trim().max(400, "A descrição pode ter no máximo 400 caracteres."),
   imagem: z.string().nullable(),
+  em_destaque: z.boolean().optional(),
   created_at: z.string().optional(),
   updated_at: z.string().optional(),
 });

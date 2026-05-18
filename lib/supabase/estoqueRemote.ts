@@ -222,6 +222,7 @@ export async function remoteCreateProduto(
     categoria: payload.categoria.trim(),
     descricao: payload.descricao.trim(),
     imagem,
+    em_destaque: Boolean(payload.em_destaque),
   };
 
   const { data, error } = await ctx.supabase.from("produtos").insert(insert).select("*").single();
@@ -296,7 +297,7 @@ export async function remoteDuplicateProdutoParaLoja(args: {
 export async function remoteUpdateProduto(
   produtoId: string,
   lojaId: string,
-  changes: Partial<Pick<Produto, "nome" | "preco" | "categoria" | "descricao" | "imagem">>,
+  changes: Partial<Pick<Produto, "nome" | "preco" | "categoria" | "descricao" | "imagem" | "em_destaque">>,
   options?: { imagemFile?: File | null }
 ): Promise<ValidationResult<Produto>> {
   const ctx = await requireSupabaseSession();
@@ -348,6 +349,7 @@ export async function remoteUpdateProduto(
     categoria: next.categoria.trim(),
     descricao: next.descricao.trim(),
     imagem: imagemOut,
+    em_destaque: Boolean(next.em_destaque),
   };
 
   const { data, error } = await ctx.supabase
