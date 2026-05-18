@@ -66,7 +66,7 @@ export default function Destaques({ usuario, onPrecisaLogin }: Props) {
   return (
     <section className="bg-gray-100 py-10 px-4">
       <h2 className="text-xl font-bold text-center mb-6 text-gray-800">
-        Produtos em Destaque
+        Produtos em Destaques
       </h2>
 
       {!montado || loading ? (
@@ -77,9 +77,9 @@ export default function Destaques({ usuario, onPrecisaLogin }: Props) {
         <p className="text-center text-red-600 text-sm max-w-md mx-auto">{error}</p>
       ) : itens.length === 0 ? (
         <p className="text-center text-gray-600 text-sm max-w-md mx-auto">
-          Esta cidade ainda está sem produtos em Destaques. Em breve as melhores lojas da sua cidade
+          Esta cidade ainda está sem produtos em destaques. Em breve as melhores lojas da sua cidade
           estarão presentes no Udiz para facilitar a sua vida na hora de pesquisar o produto que você
-          precisa!{" "}
+          precisa bem pertinho de você!{" "}
           <Link href="/busca" className="text-purple-600 font-medium hover:underline">
             Ver busca
           </Link>
