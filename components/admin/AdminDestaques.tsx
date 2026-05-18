@@ -96,17 +96,19 @@ export default function AdminDestaques() {
           placeholder="Buscar por nome, loja ou categoria..."
           value={busca}
           onChange={(e) => setBusca(e.target.value)}
-          className="min-w-0 flex-1 rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          className="min-w-0 flex-1 rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900 placeholder:text-gray-500"
         />
         <select
           value={cidadeFiltro}
           onChange={(e) => setCidadeFiltro(e.target.value)}
-          className="rounded-lg border border-gray-300 px-3 py-2 text-sm"
+          className="rounded-lg border border-gray-300 bg-white px-3 py-2 text-sm text-gray-900"
           aria-label="Filtrar por cidade"
         >
-          <option value="">Todas as cidades</option>
+          <option value="" className="text-gray-900">
+            Todas as cidades
+          </option>
           {CIDADES_DISPONIVEIS.map((c) => (
-            <option key={c} value={c}>
+            <option key={c} value={c} className="text-gray-900">
               {c}
             </option>
           ))}

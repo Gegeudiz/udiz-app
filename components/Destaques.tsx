@@ -77,8 +77,9 @@ export default function Destaques({ usuario, onPrecisaLogin }: Props) {
         <p className="text-center text-red-600 text-sm max-w-md mx-auto">{error}</p>
       ) : itens.length === 0 ? (
         <p className="text-center text-gray-600 text-sm max-w-md mx-auto">
-          Nenhum produto em destaque para esta cidade. Marque produtos no painel administrativo ou no
-          Supabase (campo em_destaque).{" "}
+          Esta cidade ainda está sem produtos em Destaques. Em breve as melhores lojas da sua cidade
+          estarão presentes no Udiz para facilitar a sua vida na hora de pesquisar o produto que você
+          precisa!{" "}
           <Link href="/busca" className="text-purple-600 font-medium hover:underline">
             Ver busca
           </Link>
